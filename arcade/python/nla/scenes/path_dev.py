@@ -214,3 +214,15 @@ def _enc_factory(key):
 
 for _key in R.ENCOUNTERS:           # python tools/sim.py --game nla.scenes.path_dev:dev_enc_yarn_ball
     globals()["dev_enc_" + _key] = _enc_factory(_key)
+
+
+def dev_stall_poor():
+    return dev_stall(treats=1)
+
+
+def dev_levelup2():
+    return dev_levelup(levels=2)
+
+
+def dev_box_full():
+    return dev_box(full_box=True)

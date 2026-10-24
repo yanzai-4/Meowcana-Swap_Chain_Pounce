@@ -25,6 +25,8 @@ from nla.ui import theme as T
 from .battle_bounds import CHARS
 
 STAGE = (0, 0, T.SCREEN_W, 232)
+# flat backdrop colors by row on the right half of the attic (wall, the 1 px floor edge, floor planks)
+FLAT_BANDS = ((30, 196, T.NIGHT1), (196, 197, T.GOLD0), (197, 232, T.NIGHT0))
 PLATE_H = 30
 OP_MS = 1.5           # per draw op (costmodel.OP_MS)
 SLOW_PX_MS = 1 / 180.0
@@ -60,7 +62,7 @@ def contains(a, b):
 
 
 def _merge(entries, restore):
-    """Merge overlapping rects of (rect, restore) entries when the union wastes at most 30% extra area."""
+    """Merge overlapping rects of (rect, restore) entries when the union adds at most 500 px of unchanged area."""
     rects = [e[0] for e in entries]
     again = True
     while again:
@@ -71,7 +73,7 @@ def _merge(entries, restore):
                 if inter(a, b) or (a[0] <= b[0] + b[2] and b[0] <= a[0] + a[2] and a[1] <= b[1] + b[3]
                                    and b[1] <= a[1] + a[3]):
                     u = union(a, b)
-                    if u[2] * u[3] * 10 <= (a[2] * a[3] + b[2] * b[3]) * 13:
+                    if u[2] * u[3] <= a[2] * a[3] + b[2] * b[3] + 500:
                         rects[i] = u
                         del rects[j]
                         again = True
@@ -79,6 +81,16 @@ def _merge(entries, restore):
             if again:
                 break
     return [(r, restore) for r in rects]
+
+
+def paint_asset(scr, asset, frame, x, y, clip):
+    """Transparent draw of an asset frame, cropped to `clip` (a plain blit when nothing crops it)."""
+    if clip is None or contains(clip, (x, y, asset.w, asset.h)):
+        scr.blit(asset, frame, x, y)
+        return
+    r = inter((x, y, asset.w, asset.h), clip)
+    if r:
+        scr.asset_region(asset, frame, r[0], r[1], r[0] - x, r[1] - y, r[2], r[3])
 
 
 # --------------------------------------------------------------------------- objects
@@ -137,6 +149,8 @@ class SpriteObj(Obj):
     def __init__(self, char, x, y):
         self.char, self.cx, self.cy = char, x, y
         self.fid, self.ox, self.oy, self.tint = "i0", 0, 0, None
+        self.opaque = False     # paint with the flat backdrop color behind the sprite (big boss: no restore pass)
+        self.recover = 0        # ticks after a tint ended: the repaint to normal colors must not be cut into strips
 
     @property
     def clippable(self):
@@ -160,6 +174,10 @@ class SpriteObj(Obj):
         suffix = {"b": "", "i": "_idle", "a": "_attack", "c": "_cast", "v": "_victory"}[self.fid[0]]
         return T.asset(self.char + suffix), int(self.fid[1:])
 
+    def step(self):
+        if self.recover:
+            self.recover -= 1
+
     def key(self):
         return (self.char, self.fid, self.ox, self.oy, self.tint)
 
@@ -175,7 +193,11 @@ class SpriteObj(Obj):
             w, h = self.size
             return blit_ms(w, h)
         r = inter(self.rect(), clip)
-        return region_ms(r[2], r[3]) if r else 0
+        if not r:
+            return 0
+        if self.opaque:
+            return r[2] * r[3] * SLOW_PX_MS + OP_MS * 2
+        return region_ms(r[2], r[3])
 
     def delta(self):
         k = self.key()
@@ -188,9 +210,20 @@ class SpriteObj(Obj):
         if p is None:
             return [(r, False)]
         char0, fid0, ox0, oy0, tint0 = p
+        if tint0 is not None and self.tint is None:
+            self.recover = 4
         if char0 == self.char and (ox0, oy0) == (self.ox, self.oy):
             if fid0 == self.fid:
                 return [(r, False)]                                 # recolor in place, same coverage
+            if self.opaque and tint0 is None and self.tint is None:
+                rr, pr = self.tab["pair"]["%s>%s" % (fid0, self.fid)]
+                ax, ay = self.cx + self.ox, self.cy + self.oy
+                box = [(ax + q[0], ay + q[1], q[2], q[3]) for q in (rr, pr) if q]
+                if not box:
+                    return []
+                return [(union(box[0], box[-1]) if len(box) > 1 else box[0], False)]
+            if self.opaque:
+                return [(self.canvas(), False)]
             if tint0 is None and self.tint is None:
                 rr, pr = self.tab["pair"]["%s>%s" % (fid0, self.fid)]
                 ax, ay = self.cx + self.ox, self.cy + self.oy
@@ -199,9 +232,15 @@ class SpriteObj(Obj):
                 if rr and pr:
                     return [(union(rr, pr), True)]
                 return [(rr, True)] if rr else ([(pr, False)] if pr else [])
+        if self.opaque:
+            return [(self.canvas(), False)]
         if inter(old, r):
             return [(union(old, r), True)]
         return [(old, True), (r, False)]
+
+    def canvas(self):
+        w, h = self.size
+        return (self.cx + self.ox, self.cy + self.oy, w, h)
 
     def paint(self, scr, clip=None):
         a, f = self._asset()
@@ -212,8 +251,15 @@ class SpriteObj(Obj):
         r = inter(self.rect(), STAGE)
         if r and clip:
             r = inter(r, clip)
-        if r:
-            scr.asset_region(a, f, r[0], r[1], r[0] - x0, r[1] - y0, r[2], r[3])
+        if not r:
+            return
+        if self.opaque:
+            for y0b, y1b, color in FLAT_BANDS:
+                y_a, y_b = max(r[1], y0b), min(r[1] + r[3], y1b)
+                if y_b > y_a:
+                    scr.asset_region(a, f, r[0], y_a, r[0] - x0, y_a - y0, r[2], y_b - y_a, bg=color)
+            return
+        scr.asset_region(a, f, r[0], r[1], r[0] - x0, r[1] - y0, r[2], r[3])
 
 
 class TextObj(Obj):
@@ -287,11 +333,16 @@ class AnimObj(Obj):
     def rect(self):
         return (int(self.x), int(self.y), self.asset.w, self.asset.h)
 
+    @property
+    def clippable(self):
+        return True
+
     def cost(self, clip):
-        return blit_ms(self.asset.w, self.asset.h)
+        r = inter(self.rect(), clip) if clip else self.rect()
+        return region_ms(r[2], r[3]) if r else 0
 
     def paint(self, scr, clip=None):
-        scr.blit(self.asset, self._frame(), int(self.x), int(self.y))
+        paint_asset(scr, self.asset, self._frame(), int(self.x), int(self.y), clip)
 
 
 class StillObj(Obj):
@@ -321,8 +372,16 @@ class StillObj(Obj):
     def rect(self):
         return (self.x, self.y, self.asset.w, self.asset.h)
 
+    @property
+    def clippable(self):
+        return True
+
+    def cost(self, clip):
+        r = inter(self.rect(), clip) if clip else self.rect()
+        return region_ms(r[2], r[3]) if r else 0
+
     def paint(self, scr, clip=None):
-        scr.blit(self.asset, self._frame(), self.x, self.y)
+        paint_asset(scr, self.asset, self._frame(), self.x, self.y, clip)
 
 
 class SparkObj(Obj):
@@ -399,13 +458,13 @@ class PawObj(Obj):
 
 
 class FlyCard(Obj):
-    """A small card flying along a line (eaten card into the mouth); painted with the card op."""
+    """A miniature card (16x22: gold rim, field color, white pip) flying along an arc, e.g. into Chubbs's mouth."""
 
     z = 7
-    W, H = T.CARD_SW, T.CARD_SH
+    W, H = 16, 22
 
-    def __init__(self, view, x0, y0, x1, y1, ticks):
-        self.view, self.x0, self.y0, self.x1, self.y1, self.ticks = view, x0, y0, x1, y1, ticks
+    def __init__(self, field, x0, y0, x1, y1, ticks):
+        self.field, self.x0, self.y0, self.x1, self.y1, self.ticks = field, x0, y0, x1, y1, ticks
         self.age = 0
 
     def step(self):
@@ -415,7 +474,7 @@ class FlyCard(Obj):
     def _pos(self):
         t = min(1.0, self.age / self.ticks)
         t = t * t * (3 - 2 * t)
-        return (int(self.x0 + (self.x1 - self.x0) * t), int(self.y0 + (self.y1 - self.y0) * t - 22 * 4 * t * (1 - t)))
+        return (int(self.x0 + (self.x1 - self.x0) * t), int(self.y0 + (self.y1 - self.y0) * t - 30 * 4 * t * (1 - t)))
 
     def key(self):
         return self._pos()
@@ -425,16 +484,18 @@ class FlyCard(Obj):
         return (x, y, self.W, self.H)
 
     def cost(self, clip):
-        return region_ms(self.W + 4, self.H + 4)
+        return 3 * OP_MS + (self.W * self.H * 2) * SLOW_PX_MS
 
     def paint(self, scr, clip=None):
         x, y = self._pos()
-        self.view.draw_scaled(scr, x, y, 1)
+        scr.fill_rect(x, y, self.W, self.H, T.GOLD2)
+        scr.fill_rect(x + 2, y + 2, self.W - 4, self.H - 4, self.field)
+        scr.fill_rect(x + 6, y + 8, 4, 4, T.MOON)
 
 
 # --------------------------------------------------------------------------- compositor
 class Stage:
-    MAX_ENTRY_MS = 46.0
+    MAX_ENTRY_MS = 36.0
 
     def __init__(self):
         self.bg = T.asset("bg_attic")
@@ -514,17 +575,24 @@ class Stage:
             if not hit:
                 continue
             if o.clippable:
-                for t in hit:
-                    o.paint(scr, t)
+                if any(contains(t, orect) for t in hit):
+                    o.paint(scr, None)
+                else:
+                    for t in hit:
+                        o.paint(scr, t)
             else:
                 o.paint(scr, None)
                 touched.append(orect)
 
     def _atomic(self, r):
+        """True when splitting r into strips would repaint an expensive unclippable object once per strip."""
+        total = 0.0
         for o in self.objs:
-            if not o.clippable and inter(o.rect(), r):
+            if getattr(o, "recover", 0) and inter(o.rect(), r):
                 return True
-        return False
+            if not o.clippable and inter(o.rect(), r):
+                total += o.cost(r)
+        return total > 12.0
 
     def draw(self, scr, limit_ms=62.0):
         if not self.built:
@@ -542,6 +610,9 @@ class Stage:
             if r:
                 clean.append((r, restore))
         restores = _merge([e for e in clean if e[1]], True)
+        restores = [e for i, e in enumerate(restores)
+                    if not any(contains(o[0], e[0]) and (o[0] != e[0] or j < i) for j, o in enumerate(restores)
+                               if j != i)]
         paints = [p for p in _merge([e for e in clean if not e[1]], False)
                   if not any(contains(r[0], p[0]) for r in restores)]
         work = restores + paints
@@ -550,7 +621,7 @@ class Stage:
             r, restore = work.pop(0)
             est = self._est(r, restore)
             have = limit_ms - scr.stats()["ms"]
-            if not first and est > have:
+            if est > have and not (first and scr.stats()["ops"] == 0):
                 self.pending.append((r, restore))
                 self.pending.extend(work)
                 return
@@ -586,6 +657,7 @@ SEQ_CAST_DOMINO = (("c0", 0, 0.10), ("c1", 0, 0.10), ("c2", 0, 0.12), ("c3", 0, 
 SEQ_ATTACK_FOE = (("a0", 0, 0.09), ("a1", 6, 0.10), ("a2", 14, 0.12), ("a3", 6, 0.08))
 HURT = ((T.MOON, 2), (T.MOON, -2), (T.RED, 2), (T.RED, -1), (None, 1), (None, 0))
 HURT_FAST = ((T.MOON, 2), (T.RED, -2))
+HURT_BIG = ((T.MOON, 0), (T.RED, 0))
 KO_RAMP = (T.SILVER1, T.SILVER1, T.NIGHT4, T.NIGHT4, T.NIGHT3, T.NIGHT3, T.NIGHT3)
 SILHOUETTE = T.NIGHT3
 
@@ -609,7 +681,9 @@ class Actor:
         self.shake = (0, 0)         # extra stage shake offset (crit)
         self.hops = []
         self.then_hold = None
+        self.frozen = None
         self.big = w * h > 5000     # 96x96 boss: moving it costs two 8k px repaints, so it only flashes and animates
+        self.sprite.opaque = self.big and center_x > 240
 
     # -- poses
     @property
@@ -631,6 +705,9 @@ class Actor:
         sp = self.sprite
         sp.char = char
         sp.fid = "i0"
+        self.frozen = None
+        self.seq = None
+        self.hold_fid = None
         w, h = sp.size
         sp.cx = sp.cx + 0
         sp.cy = FLOOR_FEET_Y + 1 - h
@@ -648,7 +725,7 @@ class Actor:
         return self.seq is not None
 
     def start_hurt(self, fast=False):
-        self.hurt = list(HURT_FAST if fast else HURT)
+        self.hurt = list(HURT_BIG if self.big else (HURT_FAST if fast else HURT))
 
     def start_ko(self):
         self.ko_step = 0
@@ -702,6 +779,12 @@ class Actor:
         else:
             n = sp.idle_frames()
             fid = "i%d" % (int(self.t * (4 if n else 1)) % n) if n else "b0"
+        if self.big and tint is not None:
+            if self.frozen is None or not sp.has(self.frozen):
+                self.frozen = sp.fid if sp.has(sp.fid) else "i0"
+            fid = self.frozen
+        else:
+            self.frozen = None
         sp.fid = fid
         sp.ox = dx + self.shake[0]
         if self.hops:

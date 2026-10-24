@@ -62,7 +62,7 @@ class ResultPanel:
         def quip(scr):
             scr.text_center(y + h - 28, self.quip, T.TEXT, T.PANEL, cx=x + w // 2)
 
-        jobs += [(900, chrome), (500, title), (900, stats), (400, quip)]
+        jobs += [(2400, chrome), (2200, title), (3200, stats), (2200, quip)]
         return jobs
 
     def draw(self, scr):

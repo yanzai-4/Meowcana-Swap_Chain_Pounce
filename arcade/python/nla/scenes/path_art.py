@@ -15,13 +15,24 @@ from nla.ui import theme as T
 
 
 def bed_parts(ox, oy):
-    """The bed scene as [(rect, paint fn)] so a scene can paint one piece per frame budget (order matters)."""
+    """The bed scene as [(rect, paint fn, est_ms)] so a scene can paint one piece per frame budget (order matters).
+    The estimates are the pieces' slow-pixel cost at 180 px/ms plus the op setup."""
 
-    def cushion(scr):
-        scr.fill_rect(ox + 14, oy + 72, 172, 6, T.NIGHT0)               # shadow
+    def cushion_left(scr):
+        scr.fill_rect(ox + 14, oy + 72, 60, 6, T.NIGHT0)                # shadow
         scr.fill_circle(ox + 24, oy + 54, 20, T.AMBER0)
+        scr.fill_rect(ox + 24, oy + 34, 50, 40, T.AMBER0)
+
+    def cushion_mid(scr):
+        scr.fill_rect(ox + 74, oy + 72, 52, 6, T.NIGHT0)
+        scr.fill_rect(ox + 74, oy + 34, 52, 40, T.AMBER0)
+
+    def cushion_right(scr):
+        scr.fill_rect(ox + 126, oy + 72, 60, 6, T.NIGHT0)
         scr.fill_circle(ox + 176, oy + 54, 20, T.AMBER0)
-        scr.fill_rect(ox + 24, oy + 34, 152, 40, T.AMBER0)
+        scr.fill_rect(ox + 126, oy + 34, 50, 40, T.AMBER0)
+
+    def cushion_trim(scr):
         scr.fill_rect(ox + 20, oy + 40, 160, 6, T.AMBER1)
         scr.fill_rect(ox + 28, oy + 62, 144, 3, T.GOLD0)
 
@@ -55,8 +66,10 @@ def bed_parts(ox, oy):
         scr.fill_rect(ox + 160, oy + 30, 22, 3, T.GOLD2)
         scr.fill_circle(ox + 172, oy + 22, 2, T.GOLD4)
 
-    return [((ox, oy + 30, 200, 50), cushion), ((ox + 40, oy + 12, 120, 64), loaf),
-            ((ox + 40, oy + 16, 64, 52), head), ((ox + 148, oy + 2, 46, 40), hat)]
+    return [((ox + 4, oy + 32, 74, 48), cushion_left, 35), ((ox + 74, oy + 34, 52, 46), cushion_mid, 25),
+            ((ox + 126, oy + 32, 74, 48), cushion_right, 35), ((ox, oy + 38, 200, 28), cushion_trim, 40),
+            ((ox + 40, oy + 12, 120, 64), loaf, 45), ((ox + 40, oy + 16, 64, 52), head, 62),
+            ((ox + 148, oy + 2, 46, 40), hat, 14)]
 
 
 BOX_W, BOX_H = 88, 36

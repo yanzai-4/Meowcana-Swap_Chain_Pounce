@@ -22,7 +22,8 @@ from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-FRAME = (2, 2, T.SCREEN_W - 4, T.SCREEN_H - 4)
+CENTER_X, CENTER_W = 70, 340      # centered one-line labels: 340 px holds 56 characters of BODY, fewer fast pixels to clear
+FRAME = (2, 2, T.SCREEN_W - 4, T.FOOTER_DIV_Y - 2)      # ends above the footer rule (the footer clears its own band)
 
 
 # --------------------------------------------------------------------------- small helpers
@@ -84,8 +85,11 @@ def place_card(services, card, status, done):
 
 # --------------------------------------------------------------------------- Tile
 class Tile:
-    """A plate with rows of text and an optional icon. The body is painted when its content changes; moving the
-    focus repaints only a two-pixel rim (a few hundred pixels), so the cursor answers at once."""
+    """A plate with rows of text and an optional icon. The body is painted when its content changes, in stages (erase,
+    icon, one text row per stage) that are spread over frames when they do not fit one; moving the focus repaints only a
+    two-pixel rim (a few hundred pixels), so the cursor answers at once. `pending` is True while stages remain."""
+
+    LIMIT_MS = 45.0
 
     def __init__(self, x, y, w, h, fill=T.PANEL, bg=T.GROUND):
         self.x, self.y, self.w, self.h, self.fill, self.bg = x, y, w, h, fill, bg
@@ -94,12 +98,18 @@ class Tile:
         self.icon_key = None
         self.focused = False
         self.dim = False
-        self._body = None
+        self._body = None           # look of the body that is on screen
         self._rim = None
+        self._job = None            # [(est_ms, fn)] of the body being painted
+        self._job_look = None
 
     @property
     def rect(self):
         return (self.x, self.y, self.w, self.h)
+
+    @property
+    def pending(self):
+        return bool(self._job)
 
     def set(self, rows=None, icon=None, icon_key=None, dim=None, focused=None):
         if rows is not None:
@@ -113,35 +123,55 @@ class Tile:
 
     def invalidate(self):
         self._body = self._rim = None
+        self._job = None
 
     def draw(self, scr, full=False):
         look = (tuple(self.rows), self.dim, self.icon_key)
-        if full or self._body != look:
-            if not full and self._body is not None and W.over_budget(scr, self.w * self.h * 1.7, 3 + len(self.rows)):
-                return
-            self._paint_body(scr, skip_fill=full and self.fill == self.bg)
-            self._body = look
+        if full and not self._job:
+            self._body = None
+        if self._body != look and (self._job is None or self._job_look != look):
+            self._job = self._plan(scr, skip_fill=full and self.fill == self.bg)
+            self._job_look = look
             self._rim = None
+        if self._job:
+            while self._job:
+                est, fn = self._job[0]
+                st = scr.stats()
+                if st["ops"] > 0 and (not full and st["ms"] + est > self.LIMIT_MS or full and st["ms"] + est > 52):
+                    return
+                fn(scr)
+                self._job.pop(0)
+            self._body = self._job_look
+            self._job = None
         if self._rim != self.focused:
             if not full and self._rim is not None and W.over_budget(scr, 400, 4):
                 return                      # one frame later; a rim is cheap but a body just used the budget
             self._paint_rim(scr)
             self._rim = self.focused
 
-    def _paint_body(self, scr, skip_fill=False):
-        """skip_fill: a full repaint already laid the ground (= fill) under the plate."""
+    def _plan(self, scr, skip_fill):
+        """Paint stages for the body: erase, icon, then one per text row. skip_fill: ground already laid there."""
         x, y, w, h = self.rect
+        job = []
         if not skip_fill:
-            scr.fill_rect(x, y, w, h, self.fill)
+            rate = 770.0 if T.is_fast(self.fill) else 180.0
+            if w * h > 9000:                # a big plate erases in two halves
+                h1 = h // 2
+                job.append((4 + w * h1 / rate, lambda s: s.fill_rect(x, y, w, h1, self.fill)))
+                job.append((4 + w * (h - h1) / rate, lambda s: s.fill_rect(x, y + h1, w, h - h1, self.fill)))
+            else:
+                job.append((4 + w * h / rate, lambda s: s.fill_rect(x, y, w, h, self.fill)))
         if self.icon is not None:
-            self.icon(scr, x, y, w, h, self.fill, self.dim)
+            job.append((getattr(self.icon, "est", 22), lambda s: self.icon(s, x, y, w, h, self.fill, self.dim)))
         for text, color, font, dy, align in self.rows:
-            if self.dim:
+            if self.dim and color != T.CURSE:       # a red row is a price flash: keep it readable on a dim plate
                 color = T.NIGHT4
             text = W.glyphs(text)
-            tw = scr.measure(text, font)[0]
+            tw, th = scr.measure(text, font)
             tx = x + (w - tw) // 2 if align == "c" else x + 10
-            scr.text(tx, y + dy, text, color, self.fill, font)
+            job.append((4 + tw * th / 180.0, lambda s, tx=tx, dy=dy, text=text, color=color, font=font:
+                        s.text(tx, y + dy, text, color, self.fill, font)))
+        return job
 
     def _paint_rim(self, scr):
         x, y, w, h = self.rect
@@ -172,7 +202,7 @@ class Sprite:
 
     def draw(self, scr, full=False):
         f = self.asset.frame_at(self.clock()) if self.anim else 0
-        if not full and (f == self._frame or W.over_budget(scr, 2400, 3)):
+        if not full and (f == self._frame or W.over_budget(scr, self.asset.w * self.asset.h, 3)):
             return
         scr.blit(self.asset, f, self.x, self.y, flip=self.flip, bg=self.bg)     # one window, transparent = bg
         self._frame = f
@@ -204,7 +234,7 @@ class NodeScene(Scene):
     def __init__(self, services, done=None):
         super().__init__(done)
         self.sv = services
-        self.statics = []           # (rect, fn(scr), group)
+        self.statics = []           # (rect, fn(scr), group, est_ms)
         self.widgets = []           # (rect or None, widget, group)
         self.mode = None            # which tagged group is shown (None-tagged items always show)
         self.footer = _SplitFooter(self.footer_bg())
@@ -224,8 +254,9 @@ class NodeScene(Scene):
         return self.ground
 
     # -- registration
-    def add_static(self, rect, fn, group=None):
-        self.statics.append((rect, fn, group))
+    def add_static(self, rect, fn, group=None, est=None):
+        """est: paint cost in ms for the frame budget (default: 4 ms plus one ms per 500 px of the rect)."""
+        self.statics.append((rect, fn, group, est if est is not None else 4 + rect[2] * rect[3] / 500.0))
 
     def add_widget(self, widget, rect=None, group=None):
         self.widgets.append((rect, widget, group))
@@ -278,7 +309,7 @@ class NodeScene(Scene):
 
     def paint(self, scr, rect=None):
         self.paint_ground(scr, rect)
-        for r, fn, group in self.statics:
+        for r, fn, group, _est in self.statics:
             if (group is None or group == self.mode) and (rect is None or inside(r, rect)):
                 fn(scr)
 
@@ -300,7 +331,7 @@ class NodeScene(Scene):
     # stage 0 the ground in row bands of at most REPAINT_PX pixels, stage 1 every static that touches the rect (each
     # exactly once, so nothing is painted twice), stage 2 the widgets that touch the rect.
     REPAINT_PX = 24000
-    FRAME_MS = 56              # busy-frame budget (limit 70); an item joins a frame only if its estimate fits
+    FRAME_MS = 52              # busy-frame budget (limit 70); an item joins a frame only if its estimate fits
     EST_MS = {"Footer": 38, "Tile": 22, "CardView": 22, "TextRun": 20, "Label": 8, "_Stage": 40, "Sprite": 18}
 
     def ground_px(self, y):
@@ -327,7 +358,7 @@ class NodeScene(Scene):
             job["y"] += n
             if job["y"] >= y + h:
                 job["stage"] = 1
-                job["items"] = [(4 + r[2] * r[3] / 500.0, fn) for r, fn, g in self.statics
+                job["items"] = [(est, fn) for r, fn, g, est in self.statics
                                 if (g is None or g == self.mode) and inside(r, job["rect"])]
             return
         if job["stage"] == 1:
@@ -342,6 +373,8 @@ class NodeScene(Scene):
         items = job["items"]
         while job["i"] < len(items) and not self._over(scr, self._est(items[job["i"]])):
             items[job["i"]].draw(scr, True)
+            if getattr(items[job["i"]], "pending", False):
+                return                      # a staged widget (Tile) continues next frame
             job["i"] += 1
         if job["i"] >= len(items):
             self._pending.pop(0)
@@ -406,4 +439,7 @@ class NodeScene(Scene):
         self.footer.set_left(status_items(self.run))
 
     def region(self, key):
+        """Tutorial highlight rects for the keys these scenes show."""
+        if key == "footer":
+            return (0, T.FOOTER_DIV_Y, T.SCREEN_W, T.SCREEN_H - T.FOOTER_DIV_Y)
         return None

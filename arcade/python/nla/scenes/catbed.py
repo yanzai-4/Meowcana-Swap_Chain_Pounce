@@ -14,7 +14,7 @@ from nla.ui import widgets as W
 from nla.ui.input import step
 
 from . import path_art
-from .path_common import NodeScene, Sprite, Tile, wrap
+from .path_common import CENTER_W, CENTER_X, NodeScene, Tile
 
 BED_XY = (140, 90)
 TILE_Y, TILE_W, TILE_H = 178, 144, 66
@@ -92,8 +92,8 @@ class CatBedScene(NodeScene):
         desc = story.NODE_TEXT["cat_bed"].desc.split("\n")
         for i, line in enumerate(desc):
             self.add_text(T.INNER_L, 32 + 15 * i, line, T.MUTED, w=T.INNER_W, align="c")
-        for rect, fn in path_art.bed_parts(*BED_XY):
-            self.add_static(rect, fn)
+        for rect, fn, est in path_art.bed_parts(*BED_XY):
+            self.add_static(rect, fn, est=est)
         self.add_widget(_Zzz(clock), _Zzz.RECT)
         candle = _Candle(112, 134, clock)
         self.add_widget(candle, candle.rect)
@@ -104,10 +104,10 @@ class CatBedScene(NodeScene):
             t = Tile(TILE_X[i], TILE_Y, TILE_W, TILE_H, fill=T.GROUND)
             self.tiles.append(t)
             self.add_widget(t, t.rect, "choose")
-        self.res = [W.Label(T.INNER_L, 180 + 17 * i, T.INNER_W, T.BODY, T.TEXT, T.GROUND, "c") for i in range(2)]
+        self.res = [W.Label(CENTER_X, 180 + 17 * i, CENTER_W, T.BODY, T.TEXT, T.GROUND, "c") for i in range(2)]
         for lab in self.res:
             self.add_widget(lab, (T.INNER_L, lab.y, T.INNER_W, 15), "result")
-        self.chips = W.Label(T.INNER_L, 216, T.INNER_W, T.BODY, T.HEAL, T.GROUND, "c")
+        self.chips = W.Label(CENTER_X, 216, CENTER_W, T.BODY, T.HEAL, T.GROUND, "c")
         self.add_widget(self.chips, (T.INNER_L, 216, T.INNER_W, 15), "result")
         self.cont = Tile(*CONTINUE)
         self.cont.set(rows=[("Continue", T.ACCENT, T.BODY, 7, "c")], focused=True)
@@ -201,7 +201,7 @@ class CatBedScene(NodeScene):
             if not targets:
                 self.toast.show("Every card already has 3 Stars!")
                 return
-            self.sv.pick_card("SHARPEN: pick a card (+1 Star)", [c.uid for c in targets], self._sharpen_picked)
+            self.sv.pick_card("SHARPEN: pick a card to add a Star", [c.uid for c in targets], self._sharpen_picked)
         else:
             targets = R.groom_targets(run)
             if not targets:

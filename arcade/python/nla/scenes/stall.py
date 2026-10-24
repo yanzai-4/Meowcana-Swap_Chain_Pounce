@@ -58,7 +58,7 @@ class _PriceTag:
         look = (self.price, self.state, self._color())
         if not full and self._drawn == look:
             return
-        if not full and W.over_budget(scr, self.w * 15, 3):
+        if not full and W.over_budget(scr, self.w * 15 * 3, 4):
             return
         scr.fill_rect(self.x, self.y, self.w, 15, T.GROUND)
         if self.price is not None:
@@ -80,6 +80,8 @@ class StallScene(NodeScene):
         self.nav = Nav([4, 5], xs=[[CARD_X0 + CARD_PITCH * i + 24 for i in range(4)],
                                    [16 + (TILE_W + TILE_GAP) * i + TILE_W // 2 for i in range(5)]], row=1, col=0)
         self._leaving = None
+        self._tile_rows = {}
+        self._tile_flash = None
         self._desc_due = 0
         self._rng = random.Random(run.seed * 31 + run.step)
         clock = lambda: self.sv.app.time if self.sv.app else 0.0   # noqa: E731
@@ -149,8 +151,15 @@ class StallScene(NodeScene):
         self.refresh_status()
         self._focus()
 
-    def _tile(self, i, name, sub, dim):
-        self.tiles[i].set(rows=[(name, T.LABEL, T.BODY, 4, "c"), (sub, T.TEXT, T.BODY, 19, "c")], dim=dim)
+    def _tile(self, i, name, sub, dim, sub_color=T.TEXT):
+        self._tile_rows[i] = (name, sub, dim)
+        self.tiles[i].set(rows=[(name, T.LABEL, T.BODY, 4, "c"), (sub, sub_color, T.BODY, 19, "c")], dim=dim)
+
+    def _flash_tile(self, i):
+        """A on something you cannot afford: its price blinks red for a moment."""
+        name, sub, dim = self._tile_rows[i]
+        self._tile(i, name, sub, dim, T.CURSE)
+        self._tile_flash = (i, self.sv.app.time + 0.7)
 
     def _item(self):
         """What the cursor is on: ("card", index) | ("tile", column)."""
@@ -221,6 +230,10 @@ class StallScene(NodeScene):
     # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.toast.update(dt)
+        if self._tile_flash is not None and self.sv.app.time >= self._tile_flash[1]:
+            i, self._tile_flash = self._tile_flash[0], None
+            name, sub, dim = self._tile_rows[i]
+            self._tile(i, name, sub, dim)
         if self._desc_due:
             self._desc_due -= 1
             if not self._desc_due:
@@ -263,7 +276,7 @@ class StallScene(NodeScene):
         if price_tag is not None:
             price_tag.flash()
         else:
-            self.tiles[self.nav.col].set(dim=True)
+            self._flash_tile(self.nav.col)
 
     def _act(self):
         kind, i = self._item()

@@ -58,8 +58,6 @@ STATUS_ICON = {"singe": 0, "puff": 1, "drowsy": 2, "curl": 3, "leap": 4}
 ELEM_SPARKS = {0: (T.FIRE2, T.AMBER3, T.FIRE1), 1: (T.AIR2, T.MOON, T.AIR1), 2: (T.WATER2, T.MOON, T.WATER1),
                3: (T.EARTH2, T.HEAL, T.EARTH1)}
 MAJOR_SPARKS = (T.GOLD4, T.GOLD3, T.MOON)
-RAT_SPARKS = (T.RAT3, T.RAT2, T.SILVER1)
-EYE = (228, 148, 23, 23)
 
 
 def _signed(v):
@@ -128,7 +126,7 @@ class BattleScene(Scene):
         self._st = [{}, {}]
         self._hit_n = 0
         self._active_slot = [None, None]
-        self._eye_done = False
+        self.panel_wait = 0
 
     # ------------------------------------------------------------------ plumbing
     def enter(self, app):
@@ -136,8 +134,8 @@ class BattleScene(Scene):
 
     @property
     def busy(self):
-        if self.phase == "result" and self.panel is not None and self.panel.ready:
-            return bool(self.stage.pending) or not self.stage.built
+        if self.phase == "result" and self.panel is not None and self.panel.ready and self.result_ready_at is not None:
+            return bool(self.stage.pending) or not self.stage.built or self.clock - self.result_ready_at < 0.3
         return True
 
     def _report(self, key):
@@ -271,20 +269,29 @@ class BattleScene(Scene):
             if scr.stats()["ms"] < 42.0:
                 self.hud.draw(scr)
             return
-        self.stage.draw(scr, 58.0)
+        self.hud.draw(scr)            # HUD first: its dirty widgets always make progress, effects get what is left
         self.popup.draw(scr)
-        self.hud.draw(scr)
+        self.stage.draw(scr, 52.0)
         if self.panel is not None:
-            self.panel.draw(scr)
+            if self.panel_wait > 0:                       # let the stage erase what the fight left behind first
+                if not self.stage.pending and not self.stage.later:
+                    self.panel_wait -= 1
+            else:
+                self.panel.draw(scr)
 
     def _popup_restore(self, rect):
         self.stage.queue_restore(rect)
 
     def restore(self, scr, rect):
+        if rect[2] >= 400:                      # a wide box (dialogue): repaint whole rows, its text may overhang
+            rect = (0, rect[1], T.SCREEN_W, rect[3])
         x, y, w, h = rect
         S_ = S.inter(rect, S.STAGE)
         if S_:
-            self.stage.restore_rect(scr, S_)
+            if S_[2] * S_[3] <= 400:
+                self.stage.restore_rect(scr, S_)       # tutorial arrow (13x13): exact and immediate
+            else:
+                self.stage.queue_restore(S_)           # a dialogue box: strip by strip over the next frames
         if y + h > 232:
             top = max(y, 232)
             scr.fill_rect(x, top, w, y + h - top, T.GROUND)
@@ -310,6 +317,10 @@ class BattleScene(Scene):
         return x, max(top - 34, 96)
 
     def _spawn(self, obj, delay=0):
+        if isinstance(obj, S.TextObj):
+            old = [o for o in self.stage.objs if isinstance(o, S.TextObj) and not o.dead]
+            while len(old) >= 3:
+                old.pop(0).dead = True
         self.stage.add(obj, delay)
         return obj
 
@@ -319,6 +330,8 @@ class BattleScene(Scene):
         self._spawn(S.TextObj(x + dxo, y, prefix + str(value), color, T.NUM, scale, 8, 18, shadow, flash), 1)
 
     def _label(self, side, text, color, dy=0, dxo=0, delay=2):
+        if self.fast:
+            return
         a = self._actor(side)
         x, top = a.top_center
         self._spawn(S.TextObj(x + dxo, max(top - 22 + dy, 100), text, color, T.BODY, 1, 8, 20, None), delay)
@@ -505,9 +518,13 @@ class BattleScene(Scene):
         text = ev.label if not ev.value else "%s %s" % (ev.label, _signed(ev.value))
         self.chain.append(text)
         tier = max(0, min(4, ev.tier))
-        prior = self._fit(self.chain[:-1], self.popup.rect[2] - 24, True)
-        self.popup.show(tier, prior if prior else self.play_label, ev.label + "!", ev.tier)
-        self.popup_shown = True
+        if self.speed == 1:                  # the popup takes a few frames to build: only worth it at 1x
+            prior = self._fit(self.chain[:-1], self.popup.rect[2] - 24, True)
+            self.popup.show(tier, prior if prior else self.play_label, ev.label + "!", ev.tier)
+            self.popup_shown = True
+        elif self.popup_shown:
+            self.popup.hide()
+            self.popup_shown = False
         self.hud.set_line(self._fit(self.chain, self.hud.rw - 20, False), T.tier_color(tier))
         mid = self.hud.slot_center_x(0, a) // 1 if a == b else (self.hud.slot_center_x(0, a) + self.hud.slot_center_x(0, b)) // 2
         if not self.fast:
@@ -651,14 +668,13 @@ class BattleScene(Scene):
             self._apply(ev)
             yield 0.2
             return
-        fly = W.CardView(0, 0, small=True, bg=T.GROUND)
-        fly.set_card(card)
+        field = T.elem_body(card.def_id // 10 if card.def_id < 40 else 0, bool(card.reversed))
         mx, my = self.foe.mouth()
-        x0 = sv.x0
+        x0 = sv.x0 + 12
         self._apply(ev)
         self.hud.deactivate(0)
-        self._label(0, ev.label, T.MUTED, dy=40, dxo=x0 + 20 - T.BATTLE_HERO_X)
-        self._spawn(S.FlyCard(fly, x0, 188, mx - 20, my - 27, 9))
+        self._label(0, ev.label, T.MUTED, dy=40, dxo=x0 + 8 - T.BATTLE_HERO_X)
+        self._spawn(S.FlyCard(field, x0, 200, mx - 6, my - 8, 10))
         yield 0.28
         self.foe.play(S.SEQ_ATTACK_FOE)
         yield 0.2
@@ -722,9 +738,10 @@ class BattleScene(Scene):
         loser = self._actor(ev.side)
         winner = self._actor(1 - ev.side)
         loser.start_ko()
+        yield 0.3
         if ev.side == 1:
             self.hero.play(VICTORY, then_hold="v3")
-        yield BASE["ko"]
+        yield BASE["ko"] - 0.3
 
     def _on_end(self, i, ev):
         yield BASE["end"]
@@ -776,6 +793,11 @@ class BattleScene(Scene):
         self.phase = "result"
         self._clear_chain()
         self.paw.visible = False
+        for o in self.stage.objs:
+            if not isinstance(o, (S.SpriteObj, S.PawObj)):
+                o.dead = True
+        self.stage.later = []
+        self.panel_wait = 3
         res = self.res
         won = bool(res.won)
         rng = random.Random(len(self.events) * 31 + res.hp_left)

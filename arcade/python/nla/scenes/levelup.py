@@ -12,8 +12,7 @@ from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.input import step
 
-from . import path_art
-from .path_common import NodeScene, Tile, wrap
+from .path_common import CENTER_W, CENTER_X, NodeScene, Tile, wrap
 
 TILE_Y, TILE_W, TILE_H = 82, 140, 150
 TILE_X = (16, 170, 324)
@@ -37,7 +36,13 @@ def _slot_icon(scr, x, y, w, h, fill, dim):
 
 
 def _box_icon(scr, x, y, w, h, fill, dim):
-    path_art.box_closed(scr, x + w // 2, y + 56)
+    """A taped cardboard box (five fills: cheap enough for a plate that repaints in one frame)."""
+    cx, base = x + w // 2, y + 54
+    scr.fill_rect(cx - 30, base - 28, 60, 28, T.GOLD1)
+    scr.fill_rect(cx - 34, base - 36, 68, 8, T.GOLD2)
+    scr.rect(cx - 30, base - 28, 60, 28, T.AMBER0)
+    scr.fill_rect(cx - 4, base - 36, 8, 20, T.GOLD4)
+    scr.fill_rect(cx - 22, base - 14, 14, 3, T.GOLD2)
 
 
 def _treat_icon(scr, x, y, w, h, fill, dim):
@@ -51,6 +56,8 @@ def _heart_icon(scr, x, y, w, h, fill, dim):
     scr.blit(a, 0, x + w // 2 - a.w * 5 // 2, y + 14, scale=5, bg=fill)
 
 
+_box_icon.est = 30
+_treat_icon.est = 34
 ICONS = {"feast": _heart_icon, "wider_cloth": _slot_icon, "bigger_box": _box_icon, "lucky_cat": _treat_icon,
          "sharpen": _stars_icon}
 
@@ -64,7 +71,7 @@ class LevelUpScene(NodeScene):
         self.options = []
         self._end = None
         self.add_frame()
-        self.level_label = W.Label(T.INNER_L, 36, T.INNER_W, T.BODY, T.MUTED, T.GROUND, "c")
+        self.level_label = W.Label(CENTER_X, 36, CENTER_W, T.BODY, T.MUTED, T.GROUND, "c")
         self.add_widget(self.level_label, (T.INNER_L, 36, T.INNER_W, 15))
         self.add_title("Level Up!", y=6)
         spark = T.asset("ui_sparkle")
@@ -75,7 +82,7 @@ class LevelUpScene(NodeScene):
             t = Tile(TILE_X[i], TILE_Y, TILE_W, TILE_H, fill=T.GROUND)
             self.tiles.append(t)
             self.add_widget(t, t.rect)
-        self.result = W.Label(T.INNER_L, 244, T.INNER_W, T.BODY, T.HEAL, T.GROUND, "c")
+        self.result = W.Label(CENTER_X, 244, CENTER_W, T.BODY, T.HEAL, T.GROUND, "c")
         self.add_widget(self.result, (T.INNER_L, 244, T.INNER_W, 15))
         self._load()
         self.tip("first_levelup")
@@ -140,7 +147,7 @@ class LevelUpScene(NodeScene):
         run = self.run
         if key == "sharpen":
             targets = [c.uid for c in R.all_cards(run) if c.star < 2]
-            self.sv.pick_card("SHARPEN CLAWS: pick a card (+1 Star)", targets, self._sharpened)
+            self.sv.pick_card("SHARPEN CLAWS: pick a card to add a Star", targets, self._sharpened)
             return
         self._apply(key, None)
 

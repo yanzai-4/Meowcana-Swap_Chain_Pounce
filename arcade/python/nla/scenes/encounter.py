@@ -7,15 +7,13 @@ card you received for the Major/page encounters, and a Continue button. A gained
 fit the Box goes through the Reward flow when you press Continue.
 """
 
-from nla import story
-from nla.rules import cards
 from nla.rules import run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.input import step
 
 from . import path_art
-from .path_common import NodeScene, Sprite, Tile, enc_story, place_card, wrap
+from .path_common import CENTER_W, CENTER_X, NodeScene, Sprite, Tile, enc_story, place_card, wrap
 
 ART_Y = 50                  # top of the 64 px sprites; feet on the floor strip at y 114
 FLOOR = (16, 114, 448, 6)
@@ -59,12 +57,12 @@ class EncounterScene(NodeScene):
             t = Tile(TILE_X[i], TILE_Y, TILE_W, TILE_H, fill=T.GROUND)
             self.tiles.append(t)
             self.add_widget(t, t.rect, "choose")
-        self.out = [W.Label(T.INNER_L, PROMPT_Y + 16 * i, T.INNER_W, T.BODY, T.TEXT, T.GROUND, "c") for i in range(3)]
+        self.out = [W.Label(CENTER_X, PROMPT_Y + 16 * i, CENTER_W, T.BODY, T.TEXT, T.GROUND, "c") for i in range(3)]
         for lab in self.out:
             self.add_widget(lab, ZONE, "result")
-        self.detail = W.Label(T.INNER_L, 0, T.INNER_W, T.BODY, T.ACCENT, T.GROUND, "c")
+        self.detail = W.Label(CENTER_X, 0, CENTER_W, T.BODY, T.ACCENT, T.GROUND, "c")
         self.add_widget(self.detail, ZONE, "result")
-        self.chips = W.Label(T.INNER_L, 0, T.INNER_W, T.BODY, T.HEAL, T.GROUND, "c")
+        self.chips = W.Label(CENTER_X, 0, CENTER_W, T.BODY, T.HEAL, T.GROUND, "c")
         self.add_widget(self.chips, ZONE, "result")
         self.view = W.CardView(*CARD_XY)
         self.add_widget(self.view, ZONE, "result")
@@ -140,7 +138,7 @@ class EncounterScene(NodeScene):
             if not owned:
                 self.toast.show("You have no cards to rework.")
                 return
-            self.sv.pick_card("REWORK: pick a card (flip it, +1 Star)", [c.uid for c in owned],
+            self.sv.pick_card("REWORK: pick a card to flip and add a Star", [c.uid for c in owned],
                               lambda uid: self._picked(i, uid))
         else:
             self._resolve(i, None)
@@ -225,6 +223,6 @@ class EncounterScene(NodeScene):
         self.finish(None)
 
 
-def dev_encounter():
+def dev_encounter(key="lost_mouse"):
     from . import path_dev
-    return path_dev.dev_encounter()
+    return path_dev.dev_encounter(key)
