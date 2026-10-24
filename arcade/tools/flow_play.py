@@ -468,7 +468,53 @@ def death(p):
     p.say("new run began in the draft (tutorial %s)" % p.app.flow.svc.run.tutorial)
 
 
-SCENARIOS = {"tutorial": tutorial, "skip": skip, "boss": boss, "death": death}
+def full(p):
+    """A whole natural run from the Title (Skip Tutorial): every Path node scene gets a screenshot."""
+    yield from new_run_via_title(p, learn=False)
+    yield from p.until(p.scene_is("CutsceneScene"), "opening cutscene")
+    yield from p.tap("B")
+    shots = {n: n.lower() for n in ("PathScene", "StallScene", "CatBedScene", "EncounterScene", "BoxScene",
+                                    "SpreadScene", "BattleScene", "RewardScene", "LevelUpScene", "EndingScene")}
+    yield from autoplay(p, lambda: p.scene in ("EndingScene", "ParlorScene") and p.settled(), limit=3000.0,
+                        shots=shots)
+    run = p.app.flow.svc.run
+    p.say("run over at step %d (done=%s) in %s" % (run.step, run.done, p.scene))
+
+
+def savequit(p):
+    """Two nodes in, Menu -> Save & Quit -> Title -> Continue lands on the same step; then Menu -> Abandon Run."""
+    yield from skip(p)
+    step = p.app.flow.svc.run.step
+    yield from p.tap("B")
+    yield from p.until(lambda: p.scene == "MenuScene" and p.settled(), "menu")
+    yield from p.tap("D")
+    yield from p.tap("D")
+    yield from p.wait(0.4)
+    yield from p.shot("menu_save_quit")
+    yield from p.tap("A")
+    yield from p.until(p.scene_is("TitleScene"), "title after Save & Quit")
+    yield from p.wait(1.5)
+    yield from p.shot("title_saved")
+    yield from p.tap("A")
+    yield from p.until(lambda: p.scene == "PathScene" and p.settled(), "path after Continue")
+    p.say("continued at step %d (saved %d)" % (p.app.flow.svc.run.step, step))
+    yield from p.shot("path_continued")
+    yield from p.tap("B")
+    yield from p.until(lambda: p.scene == "MenuScene" and p.settled(), "menu again")
+    for _ in range(3):
+        yield from p.tap("D")
+    yield from p.wait(0.4)
+    yield from p.tap("A")
+    yield from p.wait(1.0)
+    yield from p.shot("abandon_confirm")
+    yield from p.tap("R")
+    yield from p.tap("A")
+    yield from autoplay(p, lambda: p.scene == "ParlorScene" and p.settled(), limit=p.now + 120.0)
+    yield from p.wait(2.0)
+    yield from p.shot("parlor_abandon")
+
+
+SCENARIOS = {"tutorial": tutorial, "skip": skip, "boss": boss, "death": death, "full": full, "savequit": savequit}
 DEFAULT_GAME = {"boss": "nla.scenes.dev_flow:dev_boss_run", "death": "nla.scenes.dev_flow:dev_defeat_run"}
 
 

@@ -27,7 +27,7 @@ CARD_XY = (216, 176)
 _SUBJECT = {
     "lost_mouse": ("practice_mouse_idle", 304, False),
     "zero_booth": ("zero_idle", 330, True),
-    "granny_dream": ("granny_oriel_idle", 304, True),
+    "grannys_dream": ("granny_oriel_idle", 304, True),
 }
 
 
@@ -93,7 +93,7 @@ class EncounterScene(NodeScene):
             self.add_static((300, ART_Y, 80, 66), lambda scr: path_art.catnip(scr, 336, FLOOR[1]))
         elif key == "loose_page":
             self.add_static((300, ART_Y, 110, 70), self._page)
-        elif key == "yarn_ball":
+        elif key == "ball_of_yarn":
             self.add_static((298, FLOOR[1] - 44, 90, 46), lambda scr: path_art.yarn(scr, 318, FLOOR[1] - 16, 16))
 
     @staticmethod
@@ -151,7 +151,7 @@ class EncounterScene(NodeScene):
         key = self.run.current.key
         if key == "zero_booth":
             return "b" if i == 1 else ("a_reversed" if res.card is not None and res.card.reversed else "a_upright")
-        if key == "yarn_ball":
+        if key == "ball_of_yarn":
             if i == 1:
                 return "b"
             return "a_ouch" if self.run.hp < hp_before else "a_yarn"

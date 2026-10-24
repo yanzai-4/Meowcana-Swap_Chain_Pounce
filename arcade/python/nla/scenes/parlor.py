@@ -27,15 +27,21 @@ class ParlorScene(Scene):
         self.lines = lines
         self.quip = quip
         self.lit = services.profile.bells
-        self.button = W.Button(*BTN, label="Start Night", bg=T.PANEL)
-        self.button.set(focused=True)
-        self.footer = W.Footer(hints=[("A", "Start Night"), ("B", "Title"), ("C", "Bells")], bg=T.PANEL,
-                               divider_line=False)
+        self.sel = 0
+        self.buttons = [W.Button(140, 254, 200, 20, label="Start Night", bg=T.PANEL),
+                        W.Button(140, 276, 200, 18, label="Learn to Play", bg=T.PANEL)]
+        self.footer = W.Footer(bg=T.PANEL, divider_line=False)
+        self._focus()
         self.clock = 0.0
         self.ready = not dying
         self._said = not (dying and lines)
         self._candle = None
         self._bell_state = None
+
+    def _focus(self):
+        for i, b in enumerate(self.buttons):
+            b.set(focused=i == self.sel)
+        self.footer.set_hints([("A", ("Start Night", "Learn")[self.sel]), ("B", "Title"), ("C", "Bells")])
 
     def region(self, key):
         return None
@@ -50,8 +56,11 @@ class ParlorScene(Scene):
                     self._said = True
                     self.app.say(self.lines)
             return
-        if ctl.a:
-            self.finish("start")
+        if ctl.dy:
+            self.sel = 1 - self.sel
+            self._focus()
+        elif ctl.a:
+            self.finish(("start", "learn")[self.sel])
         elif ctl.b:
             self.finish("title")
         elif ctl.c:
@@ -65,14 +74,16 @@ class ParlorScene(Scene):
             scr.blit(T.asset("bg_parlor"), 0, 0, 0)
             scr.fill_rect(0, BAND_Y, T.SCREEN_W, T.SCREEN_H - BAND_Y, T.PANEL)
             scr.text_center(240, self.quip, T.MUTED, T.PANEL)
-            self.button.invalidate()
+            for b in self.buttons:
+                b.invalidate()
             self.footer.invalidate()
             self._candle = None
             self._bell_state = None
             for i, (x, y) in enumerate(BELLS):
                 glow = i < self.lit or (not self.ready and i == self.lit)
                 scr.blit(T.asset("ui_bell"), 1 if glow else 0, x, y)
-        self.button.draw(scr, False)
+        for b in self.buttons:
+            b.draw(scr, False)
         self.footer.draw(scr, False)
         self._flicker(scr)
 

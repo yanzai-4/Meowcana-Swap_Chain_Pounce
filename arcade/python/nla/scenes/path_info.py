@@ -52,7 +52,7 @@ class NodeInfo(W.Overlay):
             """One text step; its estimate comes from the cell it paints (slow pixels)."""
             msg = W.glyphs(msg)
             w, h = scr.measure(msg, font)
-            steps.append((4 + w * h / 180.0, lambda s: s.text(x, y, msg, color, T.GROUND, font)))
+            steps.append((4 + w * h / 180.0, lambda s: W.rich(s, x, y, msg, color, T.GROUND, font)))
 
         def frame(s):
             s.rect(2, 2, T.SCREEN_W - 4, T.SCREEN_H - 4, T.RULE_DIM)

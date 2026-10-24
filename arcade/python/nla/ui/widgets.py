@@ -180,13 +180,19 @@ def rich(scr, x, y, s, color, bg, font=T.BODY):
     Every star (U+2605 or {*}) gets the gold ui_star icon painted over its glyph."""
     s = glyphs(s)
     scr.text(x, y, s, color, bg, font)
-    if "\u2605" in s:
-        star = _a("ui_star")
-        ty = y + T.text_ascent(font) - 8
-        for k, ch in enumerate(s):
-            if ch == "\u2605":
-                scr.blit(star, 0, x + scr.measure(s[:k], font)[0] + 1, ty)
+    star_icons(scr, x, y, s, font)
     return scr.measure(s, font)[0]
+
+
+def star_icons(scr, x, y, s, font=T.BODY):
+    """Paint the gold ui_star icon over every star glyph (U+2605) of text `s` that was drawn at (x, y)."""
+    if "\u2605" not in s:
+        return
+    star = _a("ui_star")
+    ty = y + T.text_ascent(font) - 8
+    for k, ch in enumerate(s):
+        if ch == "\u2605":
+            scr.blit(star, 0, x + scr.measure(s[:k], font)[0] + 1, ty)
 
 
 # --------------------------------------------------------------------------- Label
@@ -231,6 +237,7 @@ class Label:
                 scr.fill_rect(self.x, self.y, self.w, th, self.bg)
         if self.msg:
             scr.text(x, self.y, text, self.color, self.bg, self.font)
+            star_icons(scr, x, self.y, text, self.font)
         self._drawn = (self.msg, self.color, w)
 
 
@@ -1167,7 +1174,9 @@ class Dialogue(Overlay):
                     self._rx = tx
             return job
 
-        self._jobs = [chrome, clear_row(0), clear_row(1)]
+        # Clear the previous page's rows first: after a narration page they start at x+14 and would
+        # otherwise erase the portrait that chrome() paints.
+        self._jobs = [clear_row(0), clear_row(1), chrome]
 
     def _type(self, scr):
         speaker, text, key = self.pages[self.i]

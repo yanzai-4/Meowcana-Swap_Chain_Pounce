@@ -1,6 +1,78 @@
-# Arcade: build a game for the UNO Q console
+# Meowcana: Swap. Chain. Pounce.
 
-[All tracks](../README.md) · [Pre-work](PREWORK.md) · [Arduino references](PREWORK.md#arduino-references) · [Terminal commands](#terminal-commands) · [Hardware reference](#hardware-reference)
+[Game](#meowcana) · [How to play](#how-to-play) · [Controls](#controls) · [Run it](#run-it) · [Architecture](docs/architecture.md) · [Credits](docs/credits.md) · [Starter and platform guide](#starter-and-platform-guide) · [All tracks](../README.md)
+
+## Meowcana
+
+Meowcana is a pixel-art tarot roguelike for the UNO Q console (480×320 TFT, joystick, A/B/C). It is Eclipse Night in Wickton and the 22 Major Arcana have been stolen. You are Domino, an apprentice-seer tuxedo cat, with Zero, a ghost kitten, at your side. You don't swing a sword: you arrange a Spread of tarot cards, and the way neighboring cards read each other decides the fight.
+
+**Demo video (60 s, silent):** [docs/media/meowcana_demo.mp4](docs/media/meowcana_demo.mp4)
+
+| Title | Spread | Boss |
+| --- | --- | --- |
+| ![Title screen](docs/media/title.png) | ![Spread with a Hiss to fix](docs/media/spread.png) | ![Chubbs, the Pantry King](docs/media/boss.png) |
+
+![Night Path map](docs/media/path.png)
+
+### How to play
+
+- **Swap**: pick up a card and drop it on another slot; the two swap seats. Cards sit in a Spread (and spare cards in the Box). Live numbers show what each slot will do before you commit.
+- **Chain**: neighbors form readings. Same element is a Nuzzle (+2 Power), friends are a Tail Tap (+1), opposites Hiss (-1). Counting up makes a Step (+2); three in a row is a Catwalk (the last card plays twice). Reversed cards play mischief tricks. Cards play left to right, the rat answers, and the chain grows. See [`docs/story-and-tutorial.md`](docs/story-and-tutorial.md) for the lesson script.
+- **Pounce**: press A on **Fight**. The whole battle is simulated up front and then played back with animation, so press A to speed it up or B to skip to the result. Win to pick 1 of 3 prize cards, Treats, and XP.
+
+Each Night Path step offers a choice: Rat Fight, Elite, Spots' Stall, Encounter, Cat Bed or Cardboard Box. Lose and a bell goes dark (Nine Bells); you wake in the Moonnap Parlor and try again.
+
+### Controls
+
+The footer always shows what the buttons do right now.
+
+| Control | Meaning |
+| --- | --- |
+| Joystick | Move the cursor (main axis wins; hold to repeat) |
+| A | **Do**: the only button that commits (pick up, drop, Fight, buy, advance dialogue) |
+| B | **Back**: never commits an irreversible action; backs out of a held card or moves the cursor to the exit button |
+| C | **Info**: explains the highlighted card or item, never changes anything |
+| A during a battle | Faster playback |
+| B during a battle | Skip to the result |
+
+### Demo scope
+
+1. **Tutorial** ("Learn to Play", 27 guided steps): Zero teaches three lessons through three scripted battles (cards go left to right; neighbors matter; counting up, Catwalk and Reversed cards). Or **Skip Tutorial** for Fate's Draft and a one-page How to Play.
+2. **Chapter 1: The Dusty Attic**: a Night Path of 6 steps plus the boss, with Sir Flea and Dog-Ear as elites, level-ups, Charms, Stars, merging, Treats and a stall.
+3. **Boss Chubbs, the Pantry King**: Bottomless Belly, then Still Hungry at half HP. Beat him for the Demo End card.
+
+Saves (`run.json`, `profile.json`) are written at node boundaries. Scope details: [`docs/demo-plan.md`](docs/demo-plan.md).
+
+### Run it
+
+On the UNO Q (from `arcade/`, board connected over USB with `adb` on your path; the first compile needs Internet and takes several minutes):
+
+```sh
+python scripts/deploy.py                  # pack assets, build the ZIP, push, flash the sketch, start the game
+python scripts/deploy.py --serial YOUR_UNO_Q_SERIAL --adb /path/to/adb   # several devices, or adb not on PATH
+```
+
+`make flash` does the same on macOS/Linux; see [Terminal commands](#terminal-commands). To use App Lab instead, see [section 2](#2-run-the-app-lab-starter).
+
+On a PC, no hardware needed (Python 3 with Pillow; the simulator runs the real game against a fake Bridge and the device cost model):
+
+```sh
+python tools/pack_assets.py                                  # once, and after art changes
+python tools/sim.py --game nla.flow:make --window            # interactive: arrows = stick, Z = A, X = B, C = C
+python tools/sim.py --game nla.flow:make --keys "1.0s,A,R,R,A,2.0s" --shots build/shots/   # scripted + screenshots
+python tools/flow_play.py tutorial --shots build/shots/      # autopilot: tutorial | skip | boss | death
+python -m unittest discover -s tests                         # rules tests
+```
+
+How it fits together (Linux and MCU split, Bridge protocol, rendering cost model): [`docs/architecture.md`](docs/architecture.md). Asset list: [`docs/assets.md`](docs/assets.md). Fonts, generated art and tools: [`docs/credits.md`](docs/credits.md).
+
+---
+
+# Starter and platform guide
+
+The sections below are the original UNO Q arcade starter and platform notes that Meowcana is built on: connecting the console, App Lab, controls calibration, the drawing API, the asset pipeline, and the simulator.
+
+[Pre-work](PREWORK.md) · [Arduino references](PREWORK.md#arduino-references) · [Terminal commands](#terminal-commands) · [Hardware reference](#hardware-reference)
 
 Build a game with a clear objective, physical controls, an ending, and a restart. The console arrives **preassembled** with an Arduino UNO Q, Modulino Joystick, Buttons and Movement, a printed body, and the DIYables 3.5-inch TFT.
 

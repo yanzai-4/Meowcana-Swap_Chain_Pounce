@@ -4,7 +4,8 @@
 
 done("learn") | done("skip") | done("continue"). Menu: Begin the Night (then Learn to Play / Skip Tutorial, with the
 default on Learn to Play until the profile shows the tutorial was finished) · Continue (only with a saved night) ·
-Records. A explains nothing it does not do, C explains the highlighted row, B backs out of a sub-menu.
+Records (a plate without a saved night; with one, the B footer hint). A explains nothing it does not do, C explains
+the highlighted row, B backs out of a sub-menu.
 """
 
 from nla.ui import theme as T
@@ -15,9 +16,9 @@ from nla.ui.input import step
 BAND = (0, 232, T.SCREEN_W, 64)
 BTN_W = 208
 BTN_X = (T.SCREEN_W - BTN_W) // 2
-# (height, pitch, first y, font): two items get roomy TITLE-font plates; the three-item case (a saved night) must still
-# end above the footer rule at y 296, so it drops to BODY-font plates.
-LAYOUT = {2: (28, 34, 234, T.TITLE), 3: (20, 21, 233, T.BODY)}
+# (height, pitch, first y, font): two roomy TITLE-font plates. With a saved night the menu is Begin / Continue and
+# Records moves to the B footer hint, so the plates never need to shrink.
+LAYOUT = {2: (28, 34, 234, T.TITLE)}
 
 STARS = ((96, 66, 0.0), (150, 96, 1.1), (330, 74, 0.5), (384, 106, 1.7), (88, 28, 0.9), (410, 30, 1.4))
 STAR_CYCLE = (None, 1, 0, 1)             # sparkle frame per quarter of the cycle (None = hidden)
@@ -64,9 +65,11 @@ class TitleScene(Scene):
             self.items = [("Begin the Night", "begin")]
             if self.can_continue:
                 self.items.append(("Continue", "continue"))
-            self.items.append(("Records", "records"))
+                hints = [("A", "Select"), ("B", "Records"), ("C", "Info")]
+            else:
+                self.items.append(("Records", "records"))
+                hints = [("A", "Select"), ("C", "Info")]
             self.sel = 1 if self.can_continue else 0
-            hints = [("A", "Select"), ("C", "Info")]
         elif mode == "choice":
             self.items = [("Learn to Play", "learn"), ("Skip Tutorial", "skip")]
             self.sel = 1 if self.tutorial_done else 0
@@ -74,7 +77,7 @@ class TitleScene(Scene):
         else:
             self.items = []
             hints = [("A", "Back")]
-        h, pitch, y0, font = LAYOUT[3 if len(self.items) > 2 else 2]
+        h, pitch, y0, font = LAYOUT[2]
         self.buttons = [W.Button(BTN_X, y0 + i * pitch, BTN_W, h, font=font) for i in range(len(self.items))]
         self.footer.set_hints(hints)
         self._band_dirty = True
@@ -91,6 +94,9 @@ class TitleScene(Scene):
         if ctl.c:
             self.app.open(W.InfoOverlay(*HELP[self.items[self.sel][1]]))
             return
+        if ctl.b and self.mode == "main" and self.can_continue:
+            self._set_mode("records")
+            return
         if ctl.b and self.mode == "choice":
             self._set_mode("main")
             self.sel = 0
@@ -98,13 +104,12 @@ class TitleScene(Scene):
         if ctl.a:
             key = self.items[self.sel][1]
             if key == "begin":
-                if self.can_continue:
-                    self.app.confirm("Start a new night?\nYour saved night will be lost.",
-                                     lambda: self._set_mode("choice"), yes="Start over", no="Keep it")
-                else:
-                    self._set_mode("choice")
+                self._set_mode("choice")
             elif key == "records":
                 self._set_mode("records")
+            elif key == "skip" and self.can_continue:
+                self.app.confirm("Start over?\nYour saved night will be lost.",
+                                 lambda: self.finish("skip"), yes="Start over", no="Keep it")
             else:
                 self.finish(key)
 

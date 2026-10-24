@@ -6,7 +6,7 @@
     NodeScene                         base Scene: ground fill, retained statics and widgets, tip scheduling,
                                       toast strip, footer with HP / Treats / Level, cheap restore() after overlays
     node_text(node)                   (title, tag, description lines) for a Night Path node
-    enc_story(key)                    story.EncounterText for a Rules encounter key (aliases the two renamed keys)
+    enc_story(key)                    story.EncounterText for a Rules encounter key (Rules and story share the keys)
     place_card(services, card, status, done)   the Reward flow for a gained card (duplicate / box full)
     status_items(run)                 footer left items: name, HP, Treats, level
 
@@ -53,11 +53,8 @@ def status_items(run):
             ("txt", "Lv %d" % run.level)]
 
 
-_ENC_ALIAS = {"granny_dream": "grannys_dream", "yarn_ball": "ball_of_yarn"}
-
-
 def enc_story(key):
-    return story.ENCOUNTERS[_ENC_ALIAS.get(key, key)]
+    return story.ENCOUNTERS[key]
 
 
 _KIND_TEXT = {"fight": "rat_fight", "bed": "cat_bed"}
@@ -170,7 +167,8 @@ class Tile:
             tw, th = scr.measure(text, font)
             tx = x + (w - tw) // 2 if align == "c" else x + 10
             job.append((4 + tw * th / 180.0, lambda s, tx=tx, dy=dy, text=text, color=color, font=font:
-                        s.text(tx, y + dy, text, color, self.fill, font)))
+                        (s.text(tx, y + dy, text, color, self.fill, font),
+                         W.star_icons(s, tx, y + dy, text, font))))
         return job
 
     def _paint_rim(self, scr):
@@ -288,9 +286,11 @@ class NodeScene(Scene):
 
         def paint(scr):
             if align == "c":
-                scr.text_center(y, W.glyphs(text), color, self.ground, font, cx=x + width // 2)
+                x0 = x + width // 2 - scr.measure(W.glyphs(text), font)[0] // 2
             else:
-                scr.text(x, y, W.glyphs(text), color, self.ground, font)
+                x0 = x
+            scr.text(x0, y, W.glyphs(text), color, self.ground, font)
+            W.star_icons(scr, x0, y, W.glyphs(text), font)
         self.add_static((x, y, width, th), paint, group)
 
     def add_divider(self, y, x0=T.INNER_L, x1=T.INNER_R, group=None):

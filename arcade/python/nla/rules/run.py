@@ -159,8 +159,8 @@ _NODE_INFO = {
     "box": ("Cardboard Box", "A cardboard box. What's inside?"),
     "boss": ("Chubbs", "Chubbs, the Pantry King, guards the stolen Strength."),
 }
-_ENCOUNTER_KEYS = ("lost_mouse", "catnip_patch", "zero_booth", "granny_dream", "loose_page",
-                   "yarn_ball")
+_ENCOUNTER_KEYS = ("lost_mouse", "catnip_patch", "zero_booth", "grannys_dream", "loose_page",
+                   "ball_of_yarn")
 
 
 def _node(kind, key=""):
@@ -739,16 +739,16 @@ ENCOUNTERS = {
         "zero_booth", "Zero's Reading Booth", "Zero sits in a tiny booth made of boxes. \"Want a reading?\"",
         [EncounterOption("Draw a card", "Gain a random Major. If it is Reversed, another card gets Rat Bite."),
          EncounterOption("Walk away", "Nothing happens.")]),
-    "granny_dream": EncounterDef(
-        "granny_dream", "Granny's Dream", "You curl up and dream of Granny's warm lap.",
+    "grannys_dream": EncounterDef(
+        "grannys_dream", "Granny's Dream", "You curl up and dream of Granny's warm lap.",
         [EncounterOption("Choose a card", "Permanently Flip it and +1 Star.", True),
          EncounterOption("Rest", "Restore 30% max HP.")]),
     "loose_page": EncounterDef(
         "loose_page", "Loose Page", "A torn page flutters by, covered in strange cards.",
         [EncounterOption("Pick it up", "Gain a random 2-Star Minor (always Reversed)."),
          EncounterOption("Burn it", "A random card gets Moonlight.")]),
-    "yarn_ball": EncounterDef(
-        "yarn_ball", "Ball of Yarn", "A ball of yarn rolls past. So tempting.",
+    "ball_of_yarn": EncounterDef(
+        "ball_of_yarn", "Ball of Yarn", "A ball of yarn rolls past. So tempting.",
         [EncounterOption("Chase it!", "50%: a card gets Yarn. 50%: lose 5 HP."),
          EncounterOption("Ignore it", "Nothing happens.")]),
 }
@@ -799,7 +799,7 @@ def resolve_encounter(run, choice, uid=None) -> EncounterResult:
                 arm_tip(run, "first_curse")
                 text += " A rat gnaws one of your cards."
         return EncounterResult(text, card, status)
-    if key == "granny_dream":
+    if key == "grannys_dream":
         if choice == 1:
             run.hp = min(run.max_hp, run.hp + run.max_hp * 30 // 100)
             return EncounterResult("You wake up feeling rested.")
@@ -821,7 +821,7 @@ def resolve_encounter(run, choice, uid=None) -> EncounterResult:
             return EncounterResult("The page burns away.")
         c.charm = MOONLIGHT
         return EncounterResult("%s gets Moonlight!" % CARD_DEFS[c.def_id].name)
-    if key == "yarn_ball":
+    if key == "ball_of_yarn":
         if choice == 1:
             return EncounterResult("You ignore it.")
         if rng.random() < 0.5:

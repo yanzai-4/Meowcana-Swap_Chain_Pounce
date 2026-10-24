@@ -38,7 +38,7 @@ COOL_COLORS = [c for c in BASE_COLORS if c not in COOL_DROP]
 SPEC = {
     "domino": dict(src="domino_merge_b", gen="right", facing="right", size=(64, 64), cool=True, role="hero",
                    anims={"idle": 4, "attack": 4, "cast": 4, "victory": 4}),
-    "zero": dict(src="zero_old", gen="right", facing="right", size=(64, 64), cool=True, role="guide", anims={"idle": 2}),
+    "zero": dict(scale=0.68, src="zero_old", gen="right", facing="right", size=(64, 64), cool=True, role="guide", anims={"idle": 2}),
     "spots": dict(src="grayrat", gen="left", facing="left", size=(64, 64), cool=False, role="merchant", anims={"idle": 2}),
     "granny_oriel": dict(src="grayrat", gen="left", facing="right", size=(64, 64), cool=False, role="npc", anims={"idle": 2}),
     "gray_rat": dict(src="grayrat", gen="left", facing="left", size=(64, 64), cool=False, role="enemy", anims={"idle": 2, "attack": 3}),
@@ -81,6 +81,14 @@ def clean(img, cool):
     q = pal.quantize_to(rgb, COOL_COLORS if cool else BASE_COLORS).convert("RGBA")
     q.putalpha(img.split()[3].point(lambda v: 255 if v >= 128 else 0))
     return q
+
+
+def shrink(img, k):
+    """Downscale an RGBA sprite by k (area filter on premultiplied color), then clean() re-snaps palette + 1-bit alpha."""
+    w, h = max(1, round(img.width * k)), max(1, round(img.height * k))
+    pm = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    pm.paste(img.convert("RGBA"))
+    return pm.resize((w, h), Image.BOX)
 
 
 def place(img, size, anchor=None):
@@ -193,6 +201,9 @@ def build():
         flip = spec["gen"] != spec["facing"]
         src = Image.open(source_path(name, spec))
         base_c = clean(src, spec["cool"])
+        full_c = base_c          # unscaled copy: the dialogue portrait must not change
+        if spec.get("scale"):
+            base_c = clean(shrink(src, spec["scale"]), spec["cool"])
         if flip:
             base_c = ImageOps.mirror(base_c)
         if name in MOUSE_RAMPS:
@@ -204,7 +215,7 @@ def build():
             frames = []
             files = sorted(SRC.glob(f"{source_path(name, spec).stem}_{anim}_[0-9][0-9].png"))
             for f in files:
-                fr = clean(Image.open(f), spec["cool"])
+                fr = clean(shrink(Image.open(f), spec["scale"]) if spec.get("scale") else Image.open(f), spec["cool"])
                 if flip:
                     fr = ImageOps.mirror(fr)
                 if name in MOUSE_RAMPS:
@@ -225,7 +236,7 @@ def build():
                 fr.save(folder / f"{anim}_{i:02d}.png")
             counts[anim] = {"frames": len(frames), "fps": FPS[anim], "source": "pixellab" if from_pl else "code"}
         base.save(folder / "base.png")
-        portrait(base).save(folder / "portrait.png")
+        portrait(place(ImageOps.mirror(full_c) if flip else full_c, spec["size"])[0] if spec.get("scale") else base).save(folder / "portrait.png")
         entries.append({"name": name, "role": spec["role"], "size": list(spec["size"]), "facing": spec["facing"],
                         "baseline": "bottom row of canvas", "base": f"characters/{name}/base.png",
                         "portrait": {"file": f"characters/{name}/portrait.png", "size": [PORTRAIT, PORTRAIT]},

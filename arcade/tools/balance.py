@@ -211,13 +211,13 @@ def visit_stall(run, skill):
 def do_encounter(run):
     enc = encounter(run)
     choice, uid = 0, None
-    if enc.key == "granny_dream":
+    if enc.key == "grannys_dream":
         t = sharpen_target(run)
         if t is None:
             choice = 1
         else:
             uid = t.uid
-    if enc.key == "yarn_ball" and run.hp < 15:
+    if enc.key == "ball_of_yarn" and run.hp < 15:
         choice = 1
     if enc.key == "lost_mouse" and run.hp < run.max_hp * 0.4:
         choice = 1

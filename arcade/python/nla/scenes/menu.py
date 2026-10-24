@@ -14,12 +14,24 @@ from nla.ui.input import step
 
 from .path_common import NodeScene, Tile, wrap
 
-ENTRIES = (
-    ("Resume", "Back to the game.", "Close the menu and keep playing."),
-    ("How to Play", "Read the rules again.", "The one-page recap: buttons, readings and how a night is won."),
-    ("Save & Quit", "Save here and go to the title.", "Your run is saved at this step. Pick Continue on the title screen to come back."),
-    ("Abandon Run", "Give up this night.", "Ends this run for good and returns you to the title. This cannot be undone."),
+_RESUME = ("resume", "Back to the game.", "Resume", "Close the menu and keep playing.")
+_HOW = ("how", "Read the rules again.", "How to Play",
+        "The one-page recap: buttons, readings and how a night is won.")
+RUN_ENTRIES = (
+    _RESUME, _HOW,
+    ("save_quit", "Save here and go to the title.", "Save & Quit",
+     "Your run is saved at this step. Pick Continue on the title screen to come back."),
+    ("abandon", "Give up this night.", "Abandon Run",
+     "Ends this run for good and returns you to the Parlor. This cannot be undone."),
 )
+TUTORIAL_ENTRIES = (
+    _RESUME, _HOW,
+    ("skip_tutorial", "Skip the lessons, pick your cards.", "Skip Tutorial",
+     "Jump to Fate's Draft for the cards you have not picked yet."),
+    ("quit_tutorial", "Leave the lessons.", "Quit Tutorial",
+     "Go back to the title screen. You can start the lessons again any time."),
+)
+NAMES = {e[0]: e[2] for e in RUN_ENTRIES + TUTORIAL_ENTRIES}
 ROW_X, ROW_W, ROW_H, ROW_GAP, ROW_Y = 120, 240, 34, 6, 76
 HELP_Y = 250
 
@@ -83,15 +95,21 @@ class MenuScene(NodeScene):
         super().__init__(services, done)
         self.sel = 0
         run = self.run
+        self.entries = TUTORIAL_ENTRIES if run.tutorial else RUN_ENTRIES
         self.add_frame()
         self.add_title("Paused", y=6)
-        where = "Chapter 1: The Dusty Attic {.} " + ("Boss: Chubbs" if run.step >= R.STEPS else "Step %d of %d" % (run.step + 1, R.STEPS))
+        if run.tutorial:
+            where = "Prologue {.} The Reading Table"
+        elif run.flags.get("draft_pick") is not None:
+            where = "Fate's Draft"
+        else:
+            where = "Chapter 1: The Dusty Attic {.} " + ("Boss: Chubbs" if run.step >= R.STEPS else "Step %d of %d" % (run.step + 1, R.STEPS))
         self.add_text(T.INNER_L, 38, W.glyphs(where), T.MUTED, w=T.INNER_W, align="c")
         self.add_divider(60)
         self.rows = []
-        for i, (name, _, _) in enumerate(ENTRIES):
+        for i, (key, _, _, _) in enumerate(self.entries):
             t = Tile(ROW_X, ROW_Y + i * (ROW_H + ROW_GAP), ROW_W, ROW_H, fill=T.GROUND)
-            t.set(rows=[(name, T.CURSE if name == "Abandon Run" else T.TEXT, T.BODY, 9, "c")])
+            t.set(rows=[(NAMES[key], T.CURSE if key == "abandon" else T.TEXT, T.BODY, 9, "c")])
             self.rows.append(t)
             self.add_widget(t, t.rect)
         self.add_divider(HELP_Y - 8)
@@ -102,30 +120,37 @@ class MenuScene(NodeScene):
     def _focus(self):
         for i, t in enumerate(self.rows):
             t.set(focused=(i == self.sel))
-        self.help.set(ENTRIES[self.sel][1])
+        self.help.set(self.entries[self.sel][1])
         self.set_hints([("A", "Select"), ("B", "Resume"), ("C", "Info")])
 
     def update(self, ctl, dt):
         self.toast.update(dt)
         if ctl.dy or ctl.dx:
-            self.sel = step(self.sel, ctl.dy or ctl.dx, len(ENTRIES))
+            self.sel = step(self.sel, ctl.dy or ctl.dx, len(self.entries))
             self._focus()
         elif ctl.b:
             self.finish("resume")
         elif ctl.a:
             self._pick(self.sel)
         elif ctl.c:
-            name, _, long = ENTRIES[self.sel]
+            _, _, name, long = self.entries[self.sel]
             self.sv.app.open(W.InfoOverlay(name, "Menu", wrap(long, 56)))
 
     def _pick(self, i):
-        if i == 0:
+        key = self.entries[i][0]
+        if key == "resume":
             self.finish("resume")
-        elif i == 1:
+        elif key == "how":
             self.sv.app.open(HowToPlay(story.HOW_TO_PLAY))
-        elif i == 2:
+        elif key == "save_quit":
             self.sv.save()
             self.finish("save_quit")
+        elif key == "skip_tutorial":
+            self.sv.app.confirm("Skip the lessons?\nYou still pick your cards.", lambda: self.finish("skip_tutorial"),
+                                yes="Skip", no="Keep going")
+        elif key == "quit_tutorial":
+            self.sv.app.confirm("Quit the lessons?\nYou can learn again from the title.",
+                                lambda: self.finish("quit_tutorial"), yes="Quit", no="Keep going")
         else:
             self.sv.app.confirm("Abandon this run?\nYou lose this night's progress.", lambda: self.finish("abandon"),
                                 yes="Abandon", no="Keep playing")

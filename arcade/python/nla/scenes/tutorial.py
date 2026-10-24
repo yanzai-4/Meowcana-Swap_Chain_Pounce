@@ -95,9 +95,7 @@ class Tutorial:
     def retry(self):
         self._begin_lesson(self.lesson)
 
-    def menu(self):
-        self.app.confirm("Skip the lessons?\nYou still pick your cards.", self._skip, yes="Skip",
-                         no="Keep going")
+
 
     def report(self, key):
         if self.phase in ("off", "hold", "reading"):
@@ -126,7 +124,8 @@ class Tutorial:
             self.phase = "off"
             self.flow.tutorial_finished()
 
-    def _skip(self):
+    def skip(self):
+        """Menu > Skip Tutorial (already confirmed there): on to Fate's Draft with the picks that remain."""
         self.phase = "off"
         self.flow.tutorial_skipped(self.picks)
 
@@ -152,7 +151,8 @@ class Tutorial:
                     self._open()
             else:
                 self.settle = 0.0
-        elif self.phase == "waiting" and not app.overlays and app._trans is None:
+        elif (self.phase == "waiting" and not app.overlays and app._trans is None
+              and type(app.scene).__name__ == _need_scene(self.step)):
             self.idle += dt
             if self.idle >= IDLE_NUDGE:
                 self._nudge()
@@ -182,7 +182,8 @@ class Tutorial:
         app = self.app
         if inp.any:
             self.idle = 0.0
-        if self.phase != "waiting" or app.overlays or app._trans is not None:
+        if (self.phase != "waiting" or app.overlays or app._trans is not None
+                or type(app.scene).__name__ != _need_scene(self.step)):
             return
         allow = self.allow
         blocked = False
@@ -190,9 +191,8 @@ class Tutorial:
             inp.a = False
             blocked = True
         if inp.b and "b" not in allow:
-            inp.b = False                            # B is the scene's Menu button: here it offers the Skip confirm
-            self.menu()
-            return
+            inp.b = False                            # B never leaves the lessons; holding B opens the Menu
+            blocked = True
         if inp.c and "c" not in allow:
             inp.c = False
             blocked = True

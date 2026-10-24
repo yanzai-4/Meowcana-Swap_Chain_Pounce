@@ -253,43 +253,59 @@ def granny(im, cx, base):
     d.rounded_rectangle([cx - 52, base - 100, cx + 52, base + 4], radius=14, fill=P["amber0"])
     d.rounded_rectangle([cx - 46, base - 94, cx + 46, base - 4], radius=11, fill=P["gold0"])
     d.arc([cx - 46, base - 94, cx + 46, base - 10], 200, 340, fill=P["gold1"])
-    # shoulders and shawl
-    d.ellipse([cx - 40, base - 66, cx + 40, base + 10], fill=P["night0"])
-    d.ellipse([cx - 38, base - 64, cx + 38, base + 8], fill=P["royal1"])
-    d.ellipse([cx - 30, base - 56, cx + 30, base + 6], fill=P["royal"])
+    # shawl over shoulders (upright, seated)
+    d.ellipse([cx - 42, base - 52, cx + 42, base + 14], fill=P["night0"])
+    d.ellipse([cx - 40, base - 50, cx + 40, base + 12], fill=P["royal1"])
+    d.ellipse([cx - 32, base - 44, cx + 32, base + 12], fill=P["royal"])
     for i in range(-3, 4):
-        d.line([(cx + i * 10, base - 52), (cx + i * 12, base + 2)], fill=P["royal0"])
-    for sx, sy in ((cx - 24, base - 40), (cx + 18, base - 32), (cx - 6, base - 20), (cx + 28, base - 44)):
+        d.line([(cx + i * 9, base - 36), (cx + i * 11, base + 4)], fill=P["royal0"])
+    for sx, sy in ((cx - 26, base - 24), (cx + 20, base - 20), (cx - 8, base - 12), (cx + 30, base - 30)):
         px(im, sx, sy, P["gold3"])
         px(im, sx + 1, sy, P["gold2"])
-    # head on folded arms (face down-left, sideways)
-    d.ellipse([cx - 24, base - 52, cx + 28, base - 4], fill=P["night0"])
-    d.ellipse([cx - 22, base - 50, cx + 26, base - 6], fill=P["pink"])
-    d.ellipse([cx - 22, base - 50, cx + 26, base - 22], fill=P["silver2"])      # grey hair
-    d.ellipse([cx - 10, base - 74, cx + 14, base - 52], fill=P["night0"])        # bun
-    d.ellipse([cx - 8, base - 72, cx + 12, base - 54], fill=P["silver2"])
-    d.line([(cx - 6, base - 66), (cx + 8, base - 60)], fill=P["silver1"])
-    d.line([(cx - 4, base - 70), (cx + 6, base - 56)], fill=P["silver1"])
-    d.rectangle([cx - 20, base - 28, cx + 22, base - 8], fill=P["pink"])
-    d.rectangle([cx - 20, base - 28, cx + 22, base - 26], fill=P["silver2"])
-    # closed eyes + glasses + smile
-    for ex in (cx - 12, cx + 6):
-        d.arc([ex, base - 24, ex + 10, base - 14], 20, 160, fill=P["night0"])
-        d.rectangle([ex - 1, base - 25, ex + 10, base - 12], outline=P["gold2"])
-    d.line([(cx - 2, base - 20), (cx + 5, base - 20)], fill=P["gold2"])
-    d.arc([cx - 6, base - 16, cx + 6, base - 8], 20, 160, fill=P["amber1"])
-    px(im, cx - 14, base - 15, P["fire2"])
-    px(im, cx + 16, base - 15, P["fire2"])
-    # arms folded on the table
-    d.ellipse([cx - 46, base - 14, cx + 48, base + 6], fill=P["night0"])
-    d.ellipse([cx - 44, base - 12, cx + 46, base + 4], fill=P["royal1"])
-    d.ellipse([cx + 24, base - 10, cx + 46, base + 2], fill=P["pink"])
-    d.ellipse([cx - 40, base - 10, cx - 20, base + 2], fill=P["pink"])
+    # shawl collar V
+    d.polygon([(cx - 14, base - 50), (cx + 14, base - 50), (cx, base - 30)], fill=P["night0"])
+    d.polygon([(cx - 12, base - 50), (cx + 12, base - 50), (cx, base - 33)], fill=P["gold1"])
+    # bun with moon hairpin
+    d.ellipse([cx - 11, base - 102, cx + 11, base - 82], fill=P["night0"])
+    d.ellipse([cx - 9, base - 100, cx + 9, base - 84], fill=P["silver2"])
+    d.line([(cx - 5, base - 96), (cx + 5, base - 92)], fill=P["silver1"])
+    d.line([(cx - 5, base - 92), (cx + 5, base - 96)], fill=P["silver1"])
+    d.ellipse([cx + 4, base - 100, cx + 10, base - 94], fill=P["moon"])
+    d.ellipse([cx + 6, base - 101, cx + 12, base - 95], fill=P["gold0"])
+    # head: white hair, face, outline
+    d.ellipse([cx - 25, base - 92, cx + 25, base - 40], fill=P["night0"])
+    d.ellipse([cx - 23, base - 90, cx + 23, base - 42], fill=P["silver2"])      # hair
+    d.ellipse([cx - 18, base - 82, cx + 18, base - 40], fill=P["pink"])         # face
+    d.rectangle([cx - 18, base - 82, cx + 18, base - 78], fill=P["silver2"])
+    d.ellipse([cx - 19, base - 90, cx + 19, base - 74], fill=P["silver2"])      # hairline fringe
+    d.rectangle([cx - 17, base - 77, cx + 17, base - 75], fill=P["pink"])
+    # closed eyes inside round glasses
+    for ex in (cx - 9, cx + 9):
+        d.ellipse([ex - 7, base - 73, ex + 7, base - 59], outline=P["gold3"])
+        d.arc([ex - 4, base - 70, ex + 4, base - 62], 20, 160, fill=P["night0"])
+    d.line([(cx - 2, base - 66), (cx + 2, base - 66)], fill=P["gold3"])
+    # cheeks, nose, soft smile
+    px(im, cx - 13, base - 55, P["fire2"])
+    px(im, cx - 12, base - 55, P["fire2"])
+    px(im, cx + 12, base - 55, P["fire2"])
+    px(im, cx + 13, base - 55, P["fire2"])
+    px(im, cx, base - 60, P["amber1"])
+    d.arc([cx - 6, base - 57, cx + 6, base - 49], 20, 160, fill=P["night0"])
+    # hands folded on the table holding a tarot card
+    d.ellipse([cx - 22, base - 20, cx + 22, base + 4], fill=P["night0"])
+    d.ellipse([cx - 20, base - 18, cx + 20, base + 2], fill=P["royal1"])
+    d.rectangle([cx - 5, base - 26, cx + 5, base - 8], fill=P["night0"])
+    d.rectangle([cx - 4, base - 25, cx + 4, base - 9], fill=P["moon"])
+    px(im, cx, base - 17, P["gold2"])
+    d.ellipse([cx - 14, base - 14, cx - 3, base - 5], fill=P["night0"])
+    d.ellipse([cx - 13, base - 13, cx - 4, base - 6], fill=P["pink"])
+    d.ellipse([cx + 3, base - 14, cx + 14, base - 5], fill=P["night0"])
+    d.ellipse([cx + 4, base - 13, cx + 13, base - 6], fill=P["pink"])
     # Zz
     z = ["wwww", "..w.", ".w..", "wwww"]
-    paste(im, icons.grid_image(z, {"w": P["silver2"]}), cx + 38, base - 90)
+    paste(im, icons.grid_image(z, {"w": P["silver2"]}), cx + 44, base - 86)
     big = icons.grid_image(["wwwwww", "....w.", "...w..", "..w...", ".w....", "wwwwww"], {"w": P["moon"]})
-    paste(im, big, cx + 48, base - 108)
+    paste(im, big, cx + 54, base - 104)
 
 
 def parlor():

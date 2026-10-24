@@ -630,7 +630,7 @@ class RunFlow(unittest.TestCase):
         self.assertNotEqual(r.spread[2].reversed, was)
 
     def test_encounters(self):
-        for key in ("lost_mouse", "catnip_patch", "zero_booth", "granny_dream", "loose_page", "yarn_ball"):
+        for key in ("lost_mouse", "catnip_patch", "zero_booth", "grannys_dream", "loose_page", "ball_of_yarn"):
             for choice in (0, 1):
                 r = new_run(12, False)
                 r.current = Node("encounter", key, "Encounter")
@@ -650,7 +650,7 @@ class RunFlow(unittest.TestCase):
         r.flags.pop("mouse_chew")
         res = simulate(r, "gray_rat", 1)
         self.assertEqual(res.events[1].kind, "status")
-        r.current = Node("encounter", "granny_dream", "Encounter")
+        r.current = Node("encounter", "grannys_dream", "Encounter")
         uid = r.spread[0].uid
         resolve_encounter(r, 0, uid)
         self.assertEqual((r.spread[0].star, r.spread[0].reversed), (1, True))

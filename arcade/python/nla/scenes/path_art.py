@@ -36,21 +36,25 @@ def bed_parts(ox, oy):
         scr.fill_rect(ox + 20, oy + 40, 160, 6, T.AMBER1)
         scr.fill_rect(ox + 28, oy + 62, 144, 3, T.GOLD0)
 
-    def loaf(scr):
+    def loaf_tail(scr):
         for x, y in ((150, 56), (156, 60), (156, 66), (150, 69), (140, 70), (128, 70)):    # tail round the front
             scr.fill_circle(ox + x, oy + y, 5, T.NIGHT0)
         scr.fill_circle(ox + 124, oy + 70, 4, T.MOON)
+
+    def loaf(scr):
         scr.fill_circle(ox + 130, oy + 46, 17, T.NIGHT0)
         scr.fill_circle(ox + 106, oy + 36, 23, T.NIGHT0)
         scr.fill_circle(ox + 84, oy + 44, 19, T.NIGHT0)
         scr.fill_rect(ox + 84, oy + 46, 46, 16, T.NIGHT0)
 
-    def head(scr):
+    def head_skull(scr):
         scr.fill_circle(ox + 62, oy + 44, 17, T.NIGHT0)
         scr.fill_triangle(ox + 48, oy + 36, ox + 50, oy + 18, ox + 62, oy + 30, T.NIGHT0)
         scr.fill_triangle(ox + 76, oy + 36, ox + 76, oy + 18, ox + 64, oy + 30, T.NIGHT0)
         scr.fill_triangle(ox + 52, oy + 33, ox + 52, oy + 24, ox + 59, oy + 31, T.PINK)
         scr.fill_triangle(ox + 73, oy + 33, ox + 73, oy + 24, ox + 66, oy + 31, T.PINK)
+
+    def head_face(scr):
         scr.fill_circle(ox + 62, oy + 52, 9, T.MOON)
         scr.fill_circle(ox + 52, oy + 47, 5, T.MOON)
         scr.fill_rect(ox + 59, oy + 48, 6, 2, T.PINK)
@@ -68,7 +72,9 @@ def bed_parts(ox, oy):
 
     return [((ox + 4, oy + 32, 74, 48), cushion_left, 35), ((ox + 74, oy + 34, 52, 46), cushion_mid, 25),
             ((ox + 126, oy + 32, 74, 48), cushion_right, 35), ((ox, oy + 38, 200, 28), cushion_trim, 40),
-            ((ox + 40, oy + 12, 120, 64), loaf, 45), ((ox + 40, oy + 16, 64, 52), head, 62),
+            ((ox + 120, oy + 50, 44, 26), loaf_tail, 30), ((ox + 40, oy + 12, 110, 54), loaf, 40),
+            ((ox + 44, oy + 16, 36, 46), head_skull, 32),
+            ((ox + 46, oy + 40, 58, 30), head_face, 32),
             ((ox + 148, oy + 2, 46, 40), hat, 14)]
 
 

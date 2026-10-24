@@ -25,11 +25,15 @@ class Draft:
         self.i = first_pick
 
     def start(self):
-        self._pick()
+        if self.i >= PICKS:
+            self._recap()
+        else:
+            self._pick()
 
     def _pick(self):
         from nla.flow import scene_class, _after
         svc = self.svc
+        svc.run.flags["draft_pick"] = self.i            # a saved night resumes at this pick
         scene = scene_class("RewardScene")(svc, R.draft_options(svc.run, self.i), self._picked,
                                            title="Fate's Draft: Card %d of %d" % (self.i + 1, PICKS),
                                            skip_treats=0)
@@ -39,13 +43,15 @@ class Draft:
 
     def _picked(self, card):
         self.i += 1
-        if self.i < PICKS:
-            self._pick()
-            return
+        self.start()
+
+    def _recap(self):
         svc = self.svc
+        svc.run.flags["draft_pick"] = PICKS
         svc.app.switch(HowToPlayScene(svc, self._recap_done))
 
     def _recap_done(self, _=None):
+        self.svc.run.flags.pop("draft_pick", None)
         self.svc.say(story.SCENES["draft_done"], self.done)
 
 
