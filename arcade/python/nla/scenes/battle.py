@@ -93,7 +93,7 @@ class BattleScene(Scene):
         self.foe = S.Actor(char, T.BATTLE_ENEMY_X, -1, self.stage)
         self.foe.t = 0.125
         self.paw = self.stage.add(S.PawObj(0, 220))
-        self.popup = ChainPanel(self._popup_restore)
+        self.popup = ChainPanel(self._popup_restore, (134, 84, 187, 45))
         self.popup_shown = False
         self.play_label = ""
 
@@ -334,7 +334,7 @@ class BattleScene(Scene):
             return
         a = self._actor(side)
         x, top = a.top_center
-        self._spawn(S.TextObj(x + dxo, max(top - 22 + dy, 100), text, color, T.BODY, 1, 8, 20, None), delay)
+        self._spawn(S.TextObj(x + dxo, max(top - 32 + dy, 96), text, color, T.BODY, 1, 8, 20, None), delay)
 
     # ------------------------------------------------------------------ state
     def _apply(self, ev):

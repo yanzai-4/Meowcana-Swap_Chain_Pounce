@@ -9,7 +9,7 @@ from nla.ui import widgets as W
 
 from .battle_hud import run_jobs
 
-RECT = (104, 46, 240, 140)
+RECT = (120, 46, 240, 140)
 
 
 class ResultPanel:

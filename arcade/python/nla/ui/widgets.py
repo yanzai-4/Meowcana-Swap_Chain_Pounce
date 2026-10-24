@@ -176,9 +176,16 @@ def rich_w(scr, s, font=T.BODY):
 
 
 def rich(scr, x, y, s, color, bg, font=T.BODY):
-    """One opaque text op with the markers {.} {>} {*} {v} turned into glyphs; y = top of the cell. Returns width."""
+    """One opaque text op with the markers {.} {>} {*} {v} turned into glyphs; y = top of the cell. Returns width.
+    Every star (U+2605 or {*}) gets the gold ui_star icon painted over its glyph."""
     s = glyphs(s)
     scr.text(x, y, s, color, bg, font)
+    if "\u2605" in s:
+        star = _a("ui_star")
+        ty = y + T.text_ascent(font) - 8
+        for k, ch in enumerate(s):
+            if ch == "\u2605":
+                scr.blit(star, 0, x + scr.measure(s[:k], font)[0] + 1, ty)
     return scr.measure(s, font)[0]
 
 
@@ -1282,40 +1289,51 @@ class InfoOverlay(Overlay):
         scr.fill_rect(0, 0, T.SCREEN_W, T.SCREEN_H, T.GROUND)
         scr.rect(2, 2, T.SCREEN_W - 4, T.SCREEN_H - 4, T.RULE_DIM)
         corners(scr, 2, 2, T.SCREEN_W - 4, T.SCREEN_H - 4)
-        tx = T.INNER_L
-        if self.card is not None:
-            self.card.bg = T.GROUND
-            self.card.draw_scaled(scr, T.INNER_L + 8, 14, 2)
-            tx = T.INNER_L + 8 + 96 + 16
         th = T.text_h(T.BODY)
-        y = 16
+        has_card = self.card is not None
+        tx = T.INNER_L + 8 + 96 + 20 if has_card else T.INNER_L
+        title_h = T.text_h(T.TITLE)
+        head_h = title_h + 10 + ((th + 12) if self.subtitle else 0) + len(self.side) * (th + 4)
+        top_h = max(128 if has_card else 0, head_h)
+        note_rows = []
+        for icon, heading, text in self.notes:
+            note_rows.append((icon, heading, textwrap.wrap(text, 54) if text else []))
+        body_h = len(self.body) * (th + 4)
+        notes_h = sum(th + 2 + len(rows) * (th + 1) + 4 for _, _, rows in note_rows)
+        total = top_h + 20 + body_h + ((8 + notes_h) if note_rows else 0)
+        avail_top, avail_bot = 10, T.FOOTER_DIV_Y - 6
+        y0 = max(avail_top, avail_top + (avail_bot - avail_top - total) // 2)
+        if has_card:
+            self.card.bg = T.GROUND
+            self.card.draw_scaled(scr, T.INNER_L + 8, y0 + (top_h - 128) // 2, 2)
+        y = y0 + (top_h - head_h) // 2
         scr.text(tx, y, self.title, T.LABEL, T.GROUND, T.TITLE)
-        y += T.text_h(T.TITLE) + 4
+        y += title_h + 10
         if self.subtitle:
             rich(scr, tx, y, self.subtitle, T.TEXT, T.GROUND)
-            y += th + 8
+            y += th + 12
         for line in self.side:
             rich(scr, tx, y, line, T.MUTED, T.GROUND)
-            y += th + 2
-        y = 152
+            y += th + 4
+        y = y0 + top_h + 8
         divider(scr, T.INNER_L, T.INNER_R, y)
-        y += 8
+        y += 12
         for line in self.body:
             rich(scr, T.INNER_L, y, line, T.TEXT, T.GROUND)
-            y += th + 2
-        y += 6
-        for icon, heading, text in self.notes:
+            y += th + 4
+        y += 8
+        for icon, heading, rows in note_rows:
             x = T.INNER_L
             if icon:
                 a = _a(icon[0])
                 scr.blit(a, icon[1], x, y + (th - a.h) // 2, bg=T.GROUND)
                 x += a.w + 4
             scr.text(x, y, heading, T.ACCENT, T.GROUND)
-            y += th + 1
-            for row in textwrap.wrap(text, 54):
+            y += th + 2
+            for row in rows:
                 rich(scr, T.INNER_L + 12, y, row, T.MUTED, T.GROUND)
                 y += th + 1
-            y += 3
+            y += 4
         Footer(hints=[("B", "Close")]).draw(scr, True)
 
 

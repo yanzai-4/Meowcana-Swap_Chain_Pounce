@@ -357,7 +357,7 @@ class Hud:
         self.footer.set_hints([("A", speed_label), ("B", "Skip"), ("C", "Info")])
 
     def set_result_hints(self):
-        self.footer.set_hints([("A", "Continue"), ("B", "Continue")])
+        self.footer.set_hints([("A", "Continue")])
 
     def row(self, side):
         return self.hand if side == 0 else self.foe

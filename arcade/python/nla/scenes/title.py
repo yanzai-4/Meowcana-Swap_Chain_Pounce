@@ -1,4 +1,4 @@
-"""Title screen: bg_title, the menu band, a calm candle flicker and a few twinkling stars.
+"""Title screen: bg_title, the menu band, a few twinkling stars.
 
     TitleScene(services, done, can_continue=False, tutorial_done=False)
 
@@ -13,10 +13,12 @@ from nla.ui.app import Scene
 from nla.ui.input import step
 
 BAND = (0, 232, T.SCREEN_W, 64)
-BTN_W, BTN_H, BTN_PITCH, BTN_Y0 = 200, 18, 20, 236
+BTN_W = 208
 BTN_X = (T.SCREEN_W - BTN_W) // 2
+# (height, pitch, first y, font): two items get roomy TITLE-font plates; the three-item case (a saved night) must still
+# end above the footer rule at y 296, so it drops to BODY-font plates.
+LAYOUT = {2: (28, 34, 234, T.TITLE), 3: (20, 21, 233, T.BODY)}
 
-CANDLE = (100, 182)                      # top-left of the 5x20 flame sprite over the baked candle
 STARS = ((96, 66, 0.0), (150, 96, 1.1), (330, 74, 0.5), (384, 106, 1.7), (88, 28, 0.9), (410, 30, 1.4))
 STAR_CYCLE = (None, 1, 0, 1)             # sparkle frame per quarter of the cycle (None = hidden)
 
@@ -44,11 +46,10 @@ class TitleScene(Scene):
         self.mode = "main"
         self.items = []
         self.sel = 0
-        self.buttons = [W.Button(BTN_X, BTN_Y0 + i * BTN_PITCH, BTN_W, BTN_H) for i in range(3)]
+        self.buttons = []
         self.footer = W.Footer(left=[("txt", "Demo")], hints=[], divider_line=False)
         self._band_dirty = True
         self._records_drawn = False
-        self._candle = None
         self._stars = [None] * len(STARS)
         self._full_done = False
         self._set_mode("main")
@@ -73,6 +74,8 @@ class TitleScene(Scene):
         else:
             self.items = []
             hints = [("A", "Back")]
+        h, pitch, y0, font = LAYOUT[3 if len(self.items) > 2 else 2]
+        self.buttons = [W.Button(BTN_X, y0 + i * pitch, BTN_W, h, font=font) for i in range(len(self.items))]
         self.footer.set_hints(hints)
         self._band_dirty = True
 
@@ -110,7 +113,6 @@ class TitleScene(Scene):
         if full:
             scr.blit(T.asset("bg_title"), 0, 0, 0)
             self._band_dirty = True
-            self._candle = None
             self._stars = [None] * len(STARS)
             self._records_drawn = False
         self._animate(scr)
@@ -147,12 +149,6 @@ class TitleScene(Scene):
 
     def _animate(self, scr):
         t = self.app.time
-        frame = int(t * 4) % 2
-        if self._candle != frame:
-            self._candle = frame
-            x, y = CANDLE
-            scr.asset_region(T.asset("bg_title"), 0, x, y, x, y, 5, 20)
-            scr.blit(T.asset("ui_candle"), frame, x, y)
         sparkle = T.asset("ui_sparkle")
         for i, (x, y, off) in enumerate(STARS):
             state = STAR_CYCLE[int((t + off) * 1.5) % len(STAR_CYCLE)]

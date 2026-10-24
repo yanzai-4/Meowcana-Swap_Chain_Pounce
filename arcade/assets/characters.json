@@ -493,5 +493,17 @@
       },
       "final": true
     }
+  ],
+  "assets": [
+    {
+      "name": "domino_story",
+      "glob": "characters/domino_story/pose_[0-9][0-9].png",
+      "fps": 0,
+      "meaning": [
+        "worried (clasped paws, card to chest)",
+        "determined (paw pointing forward)",
+        "relieved/proud (card held high)"
+      ]
+    }
   ]
 }

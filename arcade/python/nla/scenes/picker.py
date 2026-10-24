@@ -13,7 +13,7 @@ from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-from .spread_board import Board, box_x, slot_x
+from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, slot_x, text_rows
 
 SHAKE_S = 0.25
 TITLE_Y = 18
@@ -34,8 +34,7 @@ class PickerScene(Scene):
         x, y, w, h = T.SPREAD_FIGHT
         self.button = W.Button(x, y, w, h, button)
         self.footer = W.Footer()
-        self.detail1 = W.TextRun(30, 255, bg=T.PANEL)
-        self.detail2 = W.TextRun(30, 273, bg=T.PANEL)
+        self.detail = DetailPanel()
         self.row, self.col = 0, self.ns
         for i, c in enumerate(run.spread):
             if c is not None and c.uid in self.selectable:
@@ -130,8 +129,7 @@ class PickerScene(Scene):
         self.button.set(focused=self.row == 0 and self.col == self.ns)
         self.button.draw(scr, full)
         self._refresh_detail()
-        self.detail1.draw(scr, full)
-        self.detail2.draw(scr, full)
+        self.detail.draw(scr, full)
         self._refresh_footer()
         self.footer.draw(scr, full)
         if scr.stats()["ms"] > 45.0:
@@ -150,7 +148,7 @@ class PickerScene(Scene):
         W.divider(scr, T.INNER_L, T.INNER_R, T.SPREAD_DIV2_Y)
         W.divider(scr, T.INNER_L, T.INNER_R, T.SPREAD_DIV3_Y)
         W.divider(scr, T.INNER_L, T.INNER_R, T.FOOTER_DIV_Y, mid=False)
-        W.panel(scr, *T.SPREAD_DETAIL)
+        W.panel(scr, *PANEL_RECT)
 
     def _point_cursor(self):
         dx = (-2, 2, -1, 1)[int(self._shake_t * 40) % 4] if self._shake_t > 0 else 0
@@ -167,19 +165,14 @@ class PickerScene(Scene):
         self._detail_key = key
         card = self._card()
         if self.row == 0 and self.col == self.ns:
-            self.detail1.set([(self.button_label, T.LABEL, T.TITLE)])
-            self.detail2.set([("Press A to leave without choosing.", T.CAPTION)])
+            self.detail.set(self.button_label, "", [[("Press A to leave without choosing.", T.TEXT)]])
         elif card is None:
-            self.detail1.set([("Empty slot", T.CAPTION)])
-            self.detail2.set([])
+            self.detail.set(None, "", [[("Empty slot", T.CAPTION)]])
+        elif card.uid in self.selectable:
+            self.detail.set(cards.card_title(card), cards.card_subtitle(card), text_rows(cards.card_text(card)))
         else:
-            self.detail1.set([(cards.card_title(card), T.LABEL, T.TITLE), 10,
-                              ("{.} " + cards.card_subtitle(card), T.TEXT)])
-            if card.uid in self.selectable:
-                text = cards.card_text(card)
-                self.detail2.set([(text[0] if text else "", T.MUTED)])
-            else:
-                self.detail2.set([("Can't pick this one.", T.CAPTION)])
+            self.detail.set(cards.card_title(card), cards.card_subtitle(card),
+                            [[("Can't pick this one.", T.CAPTION)]])
 
     def _refresh_footer(self):
         card = self._card()

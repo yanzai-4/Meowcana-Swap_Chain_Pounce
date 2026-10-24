@@ -16,7 +16,7 @@ from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-from .spread_board import Board, box_x, hit, slot_x
+from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hit, slot_x, text_rows
 
 BIG = 2
 BIG_W, BIG_H = (T.CARD_W - 4 + 4) * BIG, T.CARD_H * BIG        # 96 x 128
@@ -28,7 +28,7 @@ FLIP_T0, FLIP_STEP, FLIP_MID = 0.75, 0.30, 0.10
 FLY_FRAMES = 10
 FLY_DT = 0.05
 LAND_S = 1.8
-DETAIL = T.SPREAD_DETAIL
+PANEL_A = (16, 204, 448, 48)
 SKIP_Y = 258
 
 
@@ -125,8 +125,7 @@ class RewardScene(Scene):
             v.set_card(c)
         self.cursor = W.Cursor()
         self.skip_btn = W.Button(180, SKIP_Y, 120, 28, "Skip +%d Treats" % skip_treats)
-        self.detail1 = W.TextRun(30, 208, bg=T.PANEL)
-        self.detail2 = W.TextRun(30, 229, bg=T.PANEL)
+        self.detail = DetailPanel(PANEL_A)
         self.footer = W.Footer()
         self.board = Board(len(self.run.spread), len(self.run.box), power=False)
         self.fly = {False: W.CardView(0, 0), True: W.CardView(0, 0, small=True)}
@@ -413,9 +412,12 @@ class RewardScene(Scene):
         if scr.stats()["ms"] > 45.0:
             self.busy = True
 
+    def _panel_rect(self):
+        return PANEL_A if self.phase == "A" else PANEL_RECT
+
     def _statics(self):
         """(rect, paint(scr)) for every static piece of the current phase."""
-        panel = (DETAIL[0], 204, DETAIL[2], 44) if self.phase == "A" else DETAIL
+        panel = self._panel_rect()
         return [
             ((100, 10, 280, 24), lambda scr: scr.text_center(12, self._title_now, T.LABEL, T.GROUND, T.TITLE)),
             ((T.INNER_L, 36, T.INNER_W, 5), lambda scr: W.divider(scr, T.INNER_L, T.INNER_R, 38)),
@@ -433,15 +435,14 @@ class RewardScene(Scene):
         self._frame(scr)
         for _, paint in self._statics():
             paint(scr)
-        ty = (208, 229) if self.phase == "A" else (255, 273)
-        self.detail1.y, self.detail2.y = ty
+        self.detail = DetailPanel(self._panel_rect())
         self._phase_drawn = self.phase
         self._invalidate_all()
 
     def _invalidate_all(self):
         self._detail_key = None
         self._footer_key = None
-        for wd in (self.cursor, self.skip_btn, self.detail1, self.detail2, self.footer, self.board):
+        for wd in (self.cursor, self.skip_btn, self.detail, self.footer, self.board):
             wd.invalidate()
         self.drawn = [None] * self.n
         for v in self.fly.values():
@@ -471,9 +472,8 @@ class RewardScene(Scene):
                     self.drawn[i] = None
             if hit(r, (180, SKIP_Y, 120, 28)):
                 self.skip_btn.invalidate()
-            if hit(r, (30, 204, 420, 44)) or hit(r, (30, 249, 420, 42)):
-                self.detail1.invalidate()
-                self.detail2.invalidate()
+            if hit(r, (30, 204, 420, 48)) or hit(r, (30, 246, 420, 48)):
+                self.detail.invalidate()
             if hit(r, (0, T.FOOTER_DIV_Y, T.SCREEN_W, 24)):
                 self.footer.invalidate()
             self.cursor.invalidate()
@@ -513,8 +513,7 @@ class RewardScene(Scene):
             self.skip_btn.set(focused=self.state == "choose" and self.pos == n, disabled=self.state != "choose")
             self.skip_btn.draw(scr, full)
         self._refresh_detail_a()
-        self.detail1.draw(scr, full)
-        self.detail2.draw(scr, full)
+        self.detail.draw(scr, full)
         self._refresh_footer()
         self.footer.draw(scr, full)
 
@@ -524,19 +523,15 @@ class RewardScene(Scene):
             return
         self._detail_key = key
         if self._note is not None:
-            self.detail1.set([(self._note, T.ACCENT)])
-            self.detail2.set([])
+            self.detail.set(None, "", [[(self._note, T.ACCENT)]])
         elif self.state == "choose" and self.pos < self.n:
             c = self.options[self.pos]
-            self.detail1.set([(cards.card_title(c), T.LABEL, T.TITLE), 10, ("{.} " + _sub(c), T.TEXT)])
-            t = cards.card_text(c)
-            self.detail2.set([(t[0] if t else "", T.MUTED)])
+            self.detail.set(cards.card_title(c), _sub(c), text_rows(cards.card_text(c)))
         elif self.state == "choose":
-            self.detail1.set([("Skip", T.LABEL, T.TITLE), 10, ("{.} +%d Treats" % self.skip_treats, T.TEXT)])
-            self.detail2.set([("Treats buy cards and services at Spots' Stall.", T.MUTED)])
-        elif self.state == "deal":
-            self.detail1.set([])
-            self.detail2.set([])
+            self.detail.set("Skip", "+%d Treats" % self.skip_treats,
+                            [[("Treats buy cards and services at Spots' Stall.", T.MUTED)]])
+        else:
+            self.detail.set(None, "", [[]])
 
     # -- phase B: the Spread/Box strip
     def _draw_b(self, scr, full):
@@ -545,8 +540,7 @@ class RewardScene(Scene):
         else:
             self.board.draw(scr, full)
         self._refresh_detail_b()
-        self.detail1.draw(scr, full)
-        self.detail2.draw(scr, full)
+        self.detail.draw(scr, full)
         self._refresh_footer()
         self.footer.draw(scr, full)
 
@@ -586,24 +580,20 @@ class RewardScene(Scene):
         self._detail_key = key
         p = self._caption
         if self.state != "landed" or p is None:
-            self.detail1.set([])
-            self.detail2.set([])
+            self.detail.set(None, "", [[]])
             return
         card = p["card"]
         where = "your Spread" if p["zone"] == "s" else "the Box"
         if p["kind"] == "merge":
             tgt = (self.run.spread if p["zone"] == "s" else self.run.box)[p["idx"]]
-            self.detail1.set([(cards.card_title(tgt), T.LABEL, T.TITLE), 10,
-                              ("{.} Merged! Now {*}%d" % (tgt.star + 1), T.ACCENT)])
+            self.detail.set(cards.card_title(tgt), "Merged! Now {*}%d" % (tgt.star + 1), text_rows(cards.card_text(tgt)))
         elif p["kind"] == "replace":
-            self.detail1.set([(cards.card_title(card), T.LABEL, T.TITLE), 10, ("{.} Swapped in. +1 Treat", T.ACCENT)])
+            self.detail.set(cards.card_title(card), "Swapped in. +1 Treat", text_rows(cards.card_text(card)))
+        elif p["zone"] == "b" and not self.run.flags.get("to_box"):
+            self.detail.set(cards.card_title(card), "Added to the Box",
+                            [[("Your Spread is full, so it waits in the Box.", T.MUTED)]])
         else:
-            self.detail1.set([(cards.card_title(card), T.LABEL, T.TITLE), 10, ("{.} Added to " + where, T.ACCENT)])
-        if p["kind"] == "add" and p["zone"] == "b" and not self.run.flags.get("to_box"):
-            self.detail2.set([("Your Spread is full, so it waits in the Box.", T.MUTED)])
-        else:
-            t = cards.card_text(card)
-            self.detail2.set([(t[0] if t else "", T.MUTED)])
+            self.detail.set(cards.card_title(card), "Added to " + where, text_rows(cards.card_text(card)))
 
     def _refresh_footer(self):
         run = self.run

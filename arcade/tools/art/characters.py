@@ -280,6 +280,34 @@ def contact_sheet(entries):
     sheet.save(SHEET)
 
 
+def build_story_poses():
+    """domino_story: 3 stills (worried / determined / relieved) from edits of domino_merge_b, same cool mapping and the
+    same baseline anchor as domino. Written to assets/raw/characters/domino_story/pose_NN.png and added to the manifest."""
+    folder = OUT / "domino_story"
+    folder.mkdir(parents=True, exist_ok=True)
+    spec = SPEC["domino"]
+    anchor = place(clean(Image.open(SRC / "domino_merge_b.png"), True), spec["size"])[1]
+    frames = []
+    for i in range(3):
+        fr = clean(Image.open(SRC / f"domino_story_{i:02d}.png"), True)
+        frames.append(place(fr, spec["size"], anchor)[0])
+    frames = limit_colors(frames[0], {"pose": (frames[1:], False)}, 15)
+    allf = [frames[0]] + frames[1]["pose"][0]
+    for i, fr in enumerate(allf):
+        fr.save(folder / f"pose_{i:02d}.png")
+    data = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    data["assets"] = [a for a in data.get("assets", []) if a["name"] != "domino_story"]
+    data["assets"].append({"name": "domino_story", "glob": "characters/domino_story/pose_[0-9][0-9].png", "fps": 0,
+                           "meaning": ["worried (clasped paws, card to chest)", "determined (paw pointing forward)",
+                                       "relieved/proud (card held high)"]})
+    MANIFEST.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    sheet = Image.new("RGB", (3 * 132, 132), P["night1"])
+    for i, fr in enumerate(allf):
+        big = fr.resize((128, 128), Image.NEAREST)
+        sheet.paste(big, (i * 132 + 2, 2), big)
+    sheet.save(ROOT / "build" / "domino_story_preview_2x.png")
+
+
 def seed_sources():
     """Copy the cached design raws into _src (first run only)."""
     SRC.mkdir(parents=True, exist_ok=True)
@@ -292,3 +320,5 @@ def seed_sources():
 if __name__ == "__main__":
     seed_sources()
     build()
+    if (SRC / "domino_story_02.png").exists():
+        build_story_poses()

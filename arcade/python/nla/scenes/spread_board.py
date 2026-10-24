@@ -294,3 +294,67 @@ class Board:
             return
         scr.blit(T.asset("fx_bite"), 0, v.x + v.w - 16, v.y - v.lift + 22)
         self._bite_seen = (v._drawn,)
+
+
+# ---------------------------------------------------------------------- detail panel (selected card, up to 2 text rows)
+PANEL_RECT = (16, 246, 448, 48)       # one pixel above the grid's detail box: three BODY rows need 45 px
+TEXT_COLS = 70                        # characters per row (BODY advance is 6 px, text starts at x 30)
+
+
+def text_rows(lines, color=T.MUTED, rows=2):
+    """Rules text (list of lines) re-wrapped to the panel width; at most `rows` rows, the last one clipped with '...'."""
+    from nla.rules import cards
+    out = cards.wrap_lines(" ".join(lines), TEXT_COLS)
+    if len(out) > rows:
+        out = out[:rows]
+        out[-1] = out[-1][:TEXT_COLS - 3].rstrip() + "..."
+    return [[(ln, color)] for ln in out]
+
+
+class DetailPanel:
+    """The boxed panel under the Box row: `Title . subtitle` plus one or two text rows.
+
+    set(title, sub, rows): rows = list of TextRun segment lists. With one row the title uses the TITLE font; with two
+    rows the whole panel switches to BODY rows so everything fits. title=None shows rows[0] alone (a hint or note).
+    The owner paints the panel box on a full redraw (W.panel(scr, *PANEL_RECT)); a mode change repaints it here."""
+
+    _Y = {"big": (3, 23, None), "small": (1, 16, 31), "plain": (14, None, None)}
+
+    def __init__(self, rect=PANEL_RECT):
+        self.rect = rect
+        self.runs = [W.TextRun(30, rect[1], bg=T.PANEL) for _ in range(3)]
+        self.want = ("plain", [[]])
+        self.mode = None            # layout currently on screen
+
+    def set(self, title, sub, rows):
+        rows = rows[:2]
+        if title is None:
+            self.want = ("plain", [rows[0] if rows else []])
+        elif len(rows) >= 2:
+            head = [(title, T.LABEL), 8, ("{.} " + sub, T.TEXT)] if sub else [(title, T.LABEL)]
+            self.want = ("small", [head] + rows)
+        else:
+            head = [(title, T.LABEL, T.TITLE), 10, ("{.} " + sub, T.TEXT)] if sub else [(title, T.LABEL, T.TITLE)]
+            self.want = ("big", [head] + rows)
+
+    def invalidate(self):
+        for r in self.runs:
+            r.invalidate()
+
+    def draw(self, scr, full=False):
+        mode, rows = self.want
+        x, y, w, h = self.rect
+        if mode != self.mode:
+            if not full and self.mode is not None:
+                if W.over_budget(scr, w * h, 2):
+                    return
+                W.panel(scr, x, y, w, h)
+            for r, dy in zip(self.runs, self._Y[mode]):
+                r.invalidate()
+                r.set([])
+                r.y = y + (dy if dy is not None else 0)
+            self.mode = mode
+        for i, r in enumerate(self.runs):
+            if self._Y[mode][i] is not None:
+                r.set(rows[i] if i < len(rows) else [])
+                r.draw(scr, full)

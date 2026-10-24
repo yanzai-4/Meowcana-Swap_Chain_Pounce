@@ -20,7 +20,7 @@ from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-from .spread_board import Board, box_x, hit, slot_x, SLOT_Y
+from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hit, slot_x, text_rows, SLOT_Y
 
 ROW_ENEMY, ROW_SPREAD, ROW_BOX = 0, 1, 2
 ENEMY_Y = T.ENEMY_SCRAP_Y
@@ -71,8 +71,7 @@ class SpreadScene(Scene):
         self.fight = W.FightPlaque()
         self.chips = W.ChipRow(160, 89, T.INNER_R - 160 + 1, align="r", gap=14)
         self.reading = W.TextRun(READING_X, 70)
-        self.detail1 = W.TextRun(30, 255, bg=T.PANEL)
-        self.detail2 = W.TextRun(30, 273, bg=T.PANEL)
+        self.detail = DetailPanel()
         self.footer = W.Footer()
         self._candle = None
         # state
@@ -518,7 +517,7 @@ class SpreadScene(Scene):
                 scr.blit(T.asset("ui_sparkle"), 1, sx - 2, sy - 2, bg=T.GROUND)
             scr.blit(T.asset("ui_moon_eye_s"), 0, 410, 204, bg=T.GROUND)
         items.append((box((390, 186, 74, 56)), decor))
-        d = T.SPREAD_DETAIL
+        d = PANEL_RECT
         items.append((box((d[0] - 1, d[1] - 1, d[2] + 2, d[3] + 2)), lambda scr: W.panel(scr, *d)))
         return items
 
@@ -531,8 +530,7 @@ class SpreadScene(Scene):
         w.append((self.fight.invalidate, T.SPREAD_FIGHT))
         w.append((self.chips.invalidate, (160, 89, 304, 15)))
         w.append((self.reading.invalidate, (READING_X, 70, T.INNER_R + 1 - READING_X, 15)))
-        w.append((self.detail1.invalidate, (30, 255, 420, 19)))
-        w.append((self.detail2.invalidate, (30, 273, 420, 15)))
+        w.append((self.detail.invalidate, PANEL_RECT))
         w.append((self.footer.invalidate, (0, T.FOOTER_DIV_Y, T.SCREEN_W, T.SCREEN_H - T.FOOTER_DIV_Y)))
         w.append((self._forget_candles, (384, 219, 71, 22)))
         return w
@@ -590,8 +588,7 @@ class SpreadScene(Scene):
         self.reading.draw(scr, full)
         self._draw_candles(scr, full)
         self._refresh_detail()
-        self.detail1.draw(scr, full)
-        self.detail2.draw(scr, full)
+        self.detail.draw(scr, full)
         self._refresh_footer()
         self.footer.draw(scr, full)
         if scr.stats()["ms"] > 45.0:      # a card repaint alone costs ~55 ms: count it as an animation frame
@@ -630,40 +627,36 @@ class SpreadScene(Scene):
         if self._detail_key == (self.row, self.col, self.held is not None):
             return
         self._detail_key = (self.row, self.col, self.held is not None)
-        l1, l2 = self._detail_lines()
-        self.detail1.set(l1)
-        self.detail2.set(l2)
+        self.detail.set(*self._detail_lines())
 
     def _detail_lines(self):
+        """(title | None, subtitle, rows) for the detail panel."""
         if self._note is not None:
-            return [(self._note, T.ACCENT)], []
+            return None, "", [[(self._note, T.ACCENT)]]
         row, col = self.row, self.col
         e = self.enemy
         if row == ROW_ENEMY:
             if col == 0:
-                return ([(e.name.split(",")[0], T.LABEL, T.TITLE), 10, ("{.} HP %d" % e.hp, T.TEXT)],
-                        [(e.blurb[:68], T.MUTED)] if e.blurb else [])
+                return (e.name.split(",")[0], "HP %d" % e.hp,
+                        text_rows([e.blurb]) if e.blurb else [])
             c = self.scraps[col - 1]
             tag = "Chewed Major" if isinstance(c, cards.Card) else "Scrap"
-            lines = cards.enemy_card_text(c)
-            return ([(cards.enemy_card_title(c), T.LABEL, T.TITLE), 10, ("{.} " + tag, T.TEXT)],
-                    [(lines[0] if lines else "", T.MUTED)])
+            return cards.enemy_card_title(c), tag, text_rows(cards.enemy_card_text(c))
         if row == ROW_SPREAD and col == self.ns:
             if any(c is not None for c in self.run.spread):
-                return [("Press A to fight", T.CAPTION)], []
-            return [("Put a card in your Spread first.", T.CAPTION)], []
+                return None, "", [[("Press A to fight", T.TEXT)]]
+            return None, "", [[("Put a card in your Spread first.", T.TEXT)]]
         sp, bx, _ = self._arrange()
         zone = "s" if row == ROW_SPREAD else "b"
         card = (sp if zone == "s" else bx)[col]
         if card is None:
-            return [("Empty slot", T.CAPTION)], []
-        l1 = [(cards.card_title(card), T.LABEL, T.TITLE), 10, ("{.} " + cards.card_subtitle(card), T.TEXT)]
+            return None, "", [[("Empty slot", T.CAPTION)]]
+        title, sub = cards.card_title(card), cards.card_subtitle(card)
         if zone == "s":
             info = self.report.slots[col]
             if info is not None and info.parts:
-                return l1, self._power_segments(info)
-        text = cards.card_text(card)
-        return l1, [(text[0] if text else "", T.MUTED)]
+                return title, sub, [self._power_segments(info)]
+        return title, sub, text_rows(cards.card_text(card))
 
     def _power_segments(self, info):
         parts = [("%s %s" % (name, val), T.HEAL if val.startswith("+") else T.CURSE) for name, val in info.parts]

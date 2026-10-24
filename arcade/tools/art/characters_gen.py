@@ -70,6 +70,16 @@ ATTACK_TEXT = {
 }
 
 
+POSES = {
+    "domino_story_00": ("Same character, outfit and style, new pose: worried, both paws clasped holding the tarot card against his chest, "
+                        "ears flattened back, big anxious eyes looking up. Facing right, feet on the ground.", 51),
+    "domino_story_01": ("Same character, outfit and style, new pose: determined and brave, one paw raised pointing forward, cloak swaying "
+                        "in the wind, confident stance, ready to go. Facing right, feet on the ground.", 52),
+    "domino_story_02": ("Same character, outfit and style, new pose: relieved and proud, smiling, holding one golden tarot card up high "
+                        "above his head in one paw, other paw on hip. Facing right, feet on the ground.", 53),
+}
+
+
 def client():
     tok = subprocess.check_output(["powershell", "-NoProfile", "-Command",
                                    "[Environment]::GetEnvironmentVariable('PIXELLAB_API_KEY','User')"], text=True).strip()
@@ -116,6 +126,12 @@ def main():
                                                          view="side", direction=direction, outline=outline, detail="medium detail"))
             dst.write_bytes(png)
             print("saved", name)
+    elif mode == "pose":
+        name = args[0]
+        desc, seed = POSES[name]
+        src = (SRC / "domino_merge_b.png").read_bytes()
+        (SRC / f"{name}.png").write_bytes(retry(lambda: c.edit_image_pixen(src, desc, seed=seed)))
+        print("saved", name)
     elif mode == "anim":
         name, anim = args[0], args[1]
         n = int(sys.argv[sys.argv.index("--frames") + 1]) if "--frames" in sys.argv else 4
