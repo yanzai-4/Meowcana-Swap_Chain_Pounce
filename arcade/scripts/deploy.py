@@ -26,6 +26,36 @@ REMOTE_FLASH = "/tmp/uno-q-flash-lf.sh"
 PACKAGED = ("app.yaml", "python", "sketch")
 SKIP_PARTS = {"__pycache__", ".venv", "build", "tests"}
 SKIP_SUFFIXES = (".pyc", ".DS_Store")
+# python/main.py replacement for --bench. stdout is also copied to <app>/data/bench.log, because
+# `docker logs` on the board can fail with "invalid character '\x00'"; read it with
+# adb shell cat ~/ArduinoApps/uno-q-arcade-cli/data/bench.log
+BENCH_MAIN = b'''import os
+import sys
+
+
+class _Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, text):
+        for stream in self.streams:
+            stream.write(text)
+            stream.flush()
+        return len(text)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+_data = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+os.makedirs(_data, exist_ok=True)
+sys.stdout = _Tee(sys.stdout, open(os.path.join(_data, "bench.log"), "w", encoding="utf-8"))
+
+from bench import main
+
+main()
+'''
 
 
 def build_zip(bench, fast_bus):
@@ -42,7 +72,7 @@ def build_zip(bench, fast_bus):
                     continue
                 data = file.read_bytes()
                 if bench and rel.as_posix() == "python/main.py":
-                    data = b"from bench import main\n\nmain()\n"
+                    data = BENCH_MAIN
                 if fast_bus and rel.as_posix() == "sketch/sketch.ino":
                     text = data.decode("utf-8")
                     flag = "#define ARCADE_FAST_BUS 0"

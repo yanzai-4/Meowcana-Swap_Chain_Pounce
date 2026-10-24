@@ -76,7 +76,7 @@ after about 8 s of idle or after a wrong move. All gating is soft: a step may no
 **opening**
 
 - **(narration)**: Eclipse Night in Wickton. The moon goes / dark. Something gnaws under the floor.
-- **(narration)**: Domino leaps onto the reading table. / The Major Arcana are gone. All 22.
+- **(narration)**: Domino checks the reading table. / The Major Arcana are gone. All 22.
 - **(narration)**: Granny Oriel will not wake up. / Her fate thread has been chewed through.
 - **Zero** [worried]: They took the cards. Want to chase them? / Better hurry. Sunrise won't wait.
 - **Domino** [calm]: Granny would want them back. / The gnawing came from the attic.

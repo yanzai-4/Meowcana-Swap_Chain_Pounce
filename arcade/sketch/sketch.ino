@@ -24,7 +24,7 @@ DIYables_TFT_RM68140_Shield display;
 // 1 = fills, bitmaps and glyph cells drive the 8-bit TFT bus with direct GPIO writes (see FastBus and
 // README "Faster TFT bus"). Flip it here, or deploy with `python scripts/deploy.py --fast-bus`.
 #ifndef ARCADE_FAST_BUS
-#define ARCADE_FAST_BUS 0
+#define ARCADE_FAST_BUS 1
 #endif
 
 #if ARCADE_FAST_BUS

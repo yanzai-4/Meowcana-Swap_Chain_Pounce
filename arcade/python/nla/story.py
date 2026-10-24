@@ -100,7 +100,7 @@ SCENES: dict[str, list[Line]] = {
     # After the tutorial (or Skip Tutorial / first Start Night): the story begins.
     "opening": [
         _n("Eclipse Night in Wickton. The moon goes\ndark. Something gnaws under the floor."),
-        _n("Domino leaps onto the reading table.\nThe Major Arcana are gone. All 22."),
+        _n("Domino checks the reading table.\nThe Major Arcana are gone. All 22."),
         _n("Granny Oriel will not wake up.\nHer fate thread has been chewed through."),
         _z("They took the cards. Want to chase them?\nBetter hurry. Sunrise won't wait.", "worried"),
         _d("Granny would want them back.\nThe gnawing came from the attic."),
