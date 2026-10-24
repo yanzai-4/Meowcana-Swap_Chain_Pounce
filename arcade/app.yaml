@@ -20,7 +20,6 @@ description: |
     it to 0 in sketch/sketch.ino. Saves are written to the app's data/ folder (run.json, profile.json).
   Known limitations: Demo content only (later chapters are hidden behind a "demo ends here" screen).
     No audio (the console has no speaker).
-    on this TFT (covered by a transition).
   Credits: Built on the UNO Q arcade starter (github.com/aaishikasb/uno-q-hackout). Libraries:
     Arduino RouterBridge, Arduino Modulino, DIYables TFT Touch Shield, Adafruit GFX. Fonts (SIL OFL 1.1,
     Google Fonts): VT323, Jacquard 24, Jersey 10, Silkscreen. Character sprites generated with PixelLab
