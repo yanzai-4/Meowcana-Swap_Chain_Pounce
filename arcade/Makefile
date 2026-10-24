@@ -21,6 +21,7 @@ help:
 	  'Override tool paths with ADB=... or ARDUINO_CLI=...'
 
 package:
+	python3 tools/pack_assets.py
 	@command -v zip >/dev/null || { echo 'Install zip to package an App Lab application.' >&2; exit 1; }
 	mkdir -p build
 	rm -f build/uno-q-arcade.zip

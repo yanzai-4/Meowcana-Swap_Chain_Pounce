@@ -46,16 +46,17 @@ On Windows, ZIP `app.yaml`, `python/`, and `sketch/` with `app.yaml` at the arch
 
 In the imported `sketch/sketch.ino`, match `ARCADE_TFT_HX8357D` to the supplied console setting: **`1` for HX8357D** (the default), **`0` for RM68140**. Run the app. The first run needs Internet access and several minutes to download and compile dependencies.
 
-The TFT shows a live control preview:
+The TFT shows **Meowcana** (*Swap. Chain. Pounce.*), started by [`python/main.py`](python/main.py) (`nla.flow.make()`). The footer always shows what the buttons do:
 
-| Control | What you see |
+| Control | Meaning |
 | --- | --- |
-| Joystick | A marker follows the stick and centers when released |
-| A, B, C, and joystick press | The matching `0/1` state changes; Buttons LEDs follow presses |
-| Movement | Acceleration changes from the neutral position, in milligravity (`1000 mg = 1 g`) |
-| Connection status | `OK` for each available module |
+| Joystick | Move the cursor |
+| A | Do (the only button that commits) |
+| B | Back |
+| C | Info (never changes anything) |
+| Missing module | `Paused` with the names of the missing modules |
 
-Move the stick in all directions, press and release each button, then tilt the console and return it to its usual playing position. If a module shows `--`, have its connection checked with power off, then restart the app.
+Move the stick and press A on **Learn to Play**. If the game shows `Paused`, have the named module's connection checked with power off, then restart the app. Saves go to `data/` next to `python/` on the board (`NLA_DATA_DIR` overrides it).
 
 Edit the imported files in App Lab, then stop and run the app again. For a terminal-managed app, edit the local checkout and run `make flash` again. For an imported app, package and import local changes again. Export the app to preserve your code, controller selection, and calibration.
 
@@ -81,7 +82,7 @@ Keep these settings in sync between the imported App Lab app and the board's Ret
 
 Place the console in its usual playing position and keep it still. The preview subtracts a baseline from each acceleration axis and applies a dead zone. This centers game input; it does not calculate tilt angles.
 
-Temporarily insert this code before `App.run(...)` in `python/main.py`. Its existing imports provide `Bridge`, `json`, and `time`:
+Temporarily insert this code before `App.run(...)` in `python/main.py`, with `import json` and `import time` at the top:
 
 ```python
 samples = []
@@ -103,24 +104,33 @@ Raw `arcade_read_inputs` acceleration still includes gravity. Keep the calibrate
 
 ### App Lab: draw directly on the TFT
 
-The included [`python/main.py`](python/main.py) reads the controls, applies calibration, and asks the sketch to draw the preview. Its core calls are:
+[`python/main.py`](python/main.py) runs a game through [`python/engine.py`](python/engine.py). Each frame is one Bridge call: `arcade_draw_ops` carries that frame's packed drawing commands to the sketch and returns the next input snapshot. A game is any object with this shape (the demo's is `nla.flow.make()`):
 
 ```python
-inputs = json.loads(Bridge.call("arcade_read_inputs"))
-frame = frame_values(inputs)
-Bridge.call("arcade_draw_frame", *frame)
+class Game:
+    required = BUTTONS | JOYSTICK          # Runner pauses with a message if these are missing
+
+    def update(self, controls, dt):         # rules; dt in seconds
+        if controls.tapped(A): ...          # new press only; controls.down(A) while held
+        self.x += controls.x * SPEED * dt   # stick -1..1, +x right, +y down; controls.tilt in mg
+
+    def draw(self, screen, full):           # full=True: screen was just cleared, repaint all
+        screen.sprite("player", self.x, self.y, 16, 16, RED)  # erases its old position itself
+        screen.text(12, 8, f"Score {self.score:3d}", WHITE, BLACK, font=BODY)
 ```
 
-These lines belong inside the starter's existing `loop()`, which supplies the imports, error handling, and RetroArch display-ownership check. Keep that structure as you add game rules.
+`Screen` also provides `clear`, `fill_rect`, `rect`, `dotted_rect`, `fill_circle`, `circle`, `line`, `fill_triangle`, `text`, `text_center`, `text_right`, `measure`, `asset`, `blit`, `asset_region`, `card`, `stats`, and `hide`. The screen is 480×320 with the origin top-left, colors are RGB565 (`rgb(r, g, b)`). Text uses baked bitmap fonts (`BODY`, `TITLE`, `NUM`, `TINY`; see section 7). The runner targets 20 fps and logs the measured rate, RPC time, and bytes per frame every 5 seconds. Full-screen `clear()` is slow on this TFT: use it for scene changes and move small sprites between frames. Batches over 200 bytes are split into several calls, so heavy frames lower the frame rate.
+
+The original preview's `arcade_draw_frame` method remains in the sketch for reference.
 
 ```mermaid
 flowchart LR
     controls["Physical controls"] --> sketch["Sketch: read inputs"]
-    sketch -->|"arcade_read_inputs"| game["Python: game rules"]
-    game -->|"arcade_draw_frame"| draw["Sketch: draw on TFT"]
+    sketch -->|"input snapshot (reply)"| game["Python: game rules"]
+    game -->|"arcade_draw_ops"| draw["Sketch: draw on TFT"]
 ```
 
-Use `python/main.py` for game state and [`sketch/sketch.ino`](sketch/sketch.ino)'s `drawFrame()` for graphics. When adding a drawing argument, update the Python call and the sketch function together. Send compact game state through Bridge and draw only the areas that change.
+Put game state in your game object and draw with `Screen`; the sketch decodes the commands in `drawOps()`. To add a new drawing command, add its opcode to `Screen`, the sketch's `opSize()`/`drawOp()`, and `tools/sim.py` (then run `python tools/hosttest/parity.py`). Draw only the areas that change.
 
 The input snapshot provides:
 
@@ -131,8 +141,9 @@ The input snapshot provides:
 | `x`, `y` | Raw joystick axes, `-127` to `128` |
 | `ax`, `ay`, `az` | Raw acceleration in mg, including gravity |
 | `video` | Nonzero while a RetroArch stream owns the display |
+| `epoch` | Changes when the sketch repaints the screen itself; the runner then requests a full redraw |
 
-`frame_values(inputs)` returns calibrated marker coordinates, button bits, Movement deltas, and connection bits in the order expected by `arcade_draw_frame`. Use connection bits before acting on a control. Keep the input bounds and the sketch's 1.5-second display timeout when extending the starter.
+`engine.Controls` turns these into calibrated stick axes, held/new-press button bits, Movement deltas, and connection bits. The runner pauses the game while a `required` control is missing. Keep the input bounds and the sketch's 1.5-second display timeout when extending the starter.
 
 A sketch-only game can reuse the same control and drawing routines, with its game rules in C++.
 
@@ -171,15 +182,81 @@ Give the console to someone who has not used your game. They should be able to u
 
 Save the source, launch command, control map, controller setting, calibration, and asset credits. The [arcade rubric](../README.md#arcade-rubric) describes the complete result.
 
+## 7. Pixel-art assets and fonts
+
+Art and fonts live in MCU flash; Python only sends small ops (`screen.blit(asset, frame, x, y)` is 11 bytes). Bitmaps never cross Bridge at runtime.
+
+```mermaid
+flowchart LR
+    manifests["assets/*.json (one per art owner)"] --> pack["tools/pack_assets.py"]
+    fonts["design/styles/moonlit-grimoire/fonts/*.ttf"] --> pack
+    pack --> header["sketch/assets.h (flash)"]
+    pack --> module["python/assets.py + fontdata.py"]
+    pack --> sim["build/sim_assets.bin (simulator only)"]
+    pack --> preview["build/asset_preview.png"]
+```
+
+**Manifests.** `python tools/pack_assets.py [--strict]` reads every `assets/*.json` (paths relative to `assets/` or `assets/raw/`):
+
+```json
+{"assets": [
+  {"name": "card_back", "file": "ui/card_back.png"},
+  {"name": "domino_idle", "glob": "characters/domino/idle_*.png", "fps": 4},
+  {"name": "cards", "frames": ["a.png", "b.png"]},
+  {"name": "faces", "sheet": "faces.png", "cell": [48, 64], "count": 96}
+]}
+```
+
+`file` is a still, `glob`/`frames` an animation, `sheet` a frame-set (for example every card face, indexed by frame). `characters.json` uses the character artist's own schema and expands to `NAME`, `NAME_portrait` and `NAME_<animation>`. Each asset becomes `python/assets.py: NAME = Asset(id, w, h, frames, fps)`. Alpha under 128 is transparent; every opaque color must be RGB565-exact and all assets share one palette of at most 255 colors (the packer fails otherwise). An asset is stored as RLE6 (1-3 pixel runs in one byte, through a local palette of up to 63 colors) or, with at most 15 colors, as 4 bits per pixel, whichever is smaller. The packer prints a per-asset table and fails above 560 KB of flash. Limits: 255 assets, 65,535 frames each, 65,535 px per side.
+
+**Drawing assets.** `blit(asset, frame, x, y, scale=1, flip=False, flip_y=False, tint=None, dim=False, bg=None)` draws once (`tint` paints every opaque pixel one color, `dim` darkens them; `bg` paints transparent pixels, `None` skips them with one window per run: slower, for small sprites). `asset(name, ...)` is the tracked variant that redraws only on change and erases its old position with `bg`. `asset_region(asset, frame, x, y, sx, sy, w, h)` draws a sub-rectangle (restore a background bitmap). `card(face, frame, x, y, rim, bg, ...)` draws a complete card (rim, ring, face, stars, gem) as one op.
+
+**Fonts.** `text(x, y, msg, color, bg=None, font=BODY, scale=1)` with `BODY` (VT323 16 px), `TITLE` (Jacquard 24, mixed case only), `NUM` (Jersey 10 at 20 px) and `TINY` (Silkscreen 8), printable ASCII only. `(x, y)` is the cell's top-left; the baseline is `y + font_metrics(font)[1] * scale`. With `bg` the glyph cell is one opaque window of exactly `measure(msg, font, scale)` pixels (fast); without it only glyph pixels are drawn (slow). `text_center(y, msg, ..., cx=240)` and `text_right(x_right, y, msg, ...)` position by measured width.
+
+Measured on the console (HX8357D, core 1.0.0): each Bridge call costs about 17 ms, a solid fill whose two color bytes are equal (`0x2929`) runs at about 770 kpx/s, other colors and bitmaps at about 180 kpx/s, and each command adds about 1.5 ms. The constants live in [`python/costmodel.py`](python/costmodel.py); `Screen.stats()` and the simulator use them. A frame should cost at most 45 ms on menus and 70 ms during animations.
+
+### Faster TFT bus (optional, off by default)
+
+The DIYables library has no native fast path for the UNO Q, so it drives the 8-bit parallel bus with `digitalWrite` (about 10 calls per data byte). With `ARCADE_FAST_BUS` set to 1 in [`sketch/sketch.ino`](sketch/sketch.ino), solid fills, bitmaps, glyph cells and cards write the bus through direct GPIO registers instead: two 256-entry lookup tables turn each byte into two `BSRR` writes, then WR toggles. Pin map (from the core's UNO Q overlay and the shield's wiring): TFT D0-D7 = PB4, PB8, PB3, PB0, PA12, PA11, PB1, PB2; RD/WR/CD/CS = PA4-PA7. The library still initializes the controller and draws circles, lines and triangles.
+
+Turn it on with one line: `python scripts/deploy.py --fast-bus` (or change `#define ARCADE_FAST_BUS 0` to `1` in `sketch.ino`). The sketch then starts in mode 3, the slowest direct mode (about 6 nops between WR edges). `arcade_bus_mode(m)` switches paths at run time: 0 = library, 1/2/3 = direct with 0/2/6 nops. To compare them on the console run `python scripts/deploy.py --bench --fast-bus`, then `make logs`: `python/bench.py` shows a test pattern for 3 s per mode (look for noise or wrong colors, which mean the WR pulse is too short for that mode) and prints kpx/s for fills, text, and sprites per mode. Copy the numbers of the fastest clean mode into `python/costmodel.py` and set `FastBus::mode` at the end of `setup()` to it.
+
+Verified without the board: the lookup tables, pin map, and WR/CD sequencing are checked by `python tools/hosttest/parity.py`, which runs the sketch's real code against a modeled bus (BSRR semantics, the pin map written out independently, an 8080 write decoder) and compares the picture with the simulator in all four modes. Not verified: that the pins and speeds actually behave on the board (output speed registers, WR pulse width against the HX8357D timing). The asset flash budget leaves room for code in the 768 KB user sketch partition.
+
+## 8. Simulator
+
+`tools/sim.py` runs the real Python game on your computer against a fake Bridge that decodes the exact op bytes the sketch receives, using the packed asset and font data, and charges every frame the device cost model. Run it from `arcade/` after `python tools/pack_assets.py`:
+
+```sh
+# Headless and deterministic: scripted input, screenshots, cost.csv
+python tools/sim.py --game nla.flow:make --keys "1.0s,A,R,R,A,2.0s" --shots build/shots/ --every 0.5
+
+# Interactive window at 2x: arrows = stick, Z = A, X = B, C = C, e = force full redraw, p = save screenshot
+python tools/sim.py --game nla.flow:make --window
+```
+
+`--game module:attr` names a callable returning the game object (dotted modules under `python/` work). `--keys` is a comma list: `1.5s` waits, `A`/`B`/`C`/`S` tap a button or the stick press (0.1 s), `L`/`R`/`U`/`D` tap the stick, `R:0.5s` holds, `R+A:0.3s` combines, `EPOCH` makes the sketch "repaint" so the runner redraws everything, and `SHOT[:name]` saves a screenshot. The virtual clock advances by the estimated device time, so game timing matches a slow frame. The run prints a warning for every frame above 45 ms (70 ms while the game sets `busy = True`) and a summary; `cost.csv` has one row per frame (ms, RPC chunks, bytes, ops, fast/slow pixels).
+
+Checks that need no hardware: `python tools/sim_selftest.py` (baked glyphs equal Pillow's rendering), `python tools/sim.py --game sim_selftest:Game --keys 0.3s --shots build/shots2/ --scale 2` (every op), and `python tools/hosttest/parity.py` (compiles the sketch's real op decoder on the host with `python -m ziglang`, from `pip install ziglang`, and compares its pixels with the simulator).
+
 ## Code map
 
 | File | Role |
 | --- | --- |
-| [`python/main.py`](python/main.py) | Preview loop; add your game state here |
+| [`python/main.py`](python/main.py) | Starts the game runner |
+| [`python/engine.py`](python/engine.py) | Calibrated controls, batched drawing, frame loop, missing-control pause |
+| [`python/nla/`](python/nla/) | The Meowcana game (`nla.flow.make()` is the entry point) |
+| [`python/assets.py`](python/assets.py), [`python/fontdata.py`](python/fontdata.py) | Generated asset ids, sizes, frame counts, and font metrics |
+| [`python/costmodel.py`](python/costmodel.py) | Device cost constants shared by `Screen.stats()` and the simulator |
+| [`python/bench.py`](python/bench.py) | Board benchmark for the cost constants (`scripts/deploy.py --bench`) |
 | [`python/preview.py`](python/preview.py) | Input bounds and shared control calibration |
-| [`sketch/sketch.ino`](sketch/sketch.ino) | Modulino input, Bridge methods, and TFT drawing |
+| [`sketch/sketch.ino`](sketch/sketch.ino) | Modulino input, Bridge methods, and TFT drawing (`arcade_draw_ops`) |
 | [`sketch/sketch.yaml`](sketch/sketch.yaml) | Pinned UNO Q core and Arduino libraries |
+| [`sketch/assets.h`](sketch/assets.h) | Generated palette, compressed frames, and baked glyphs in flash |
 | [`sketch/video_protocol.h`](sketch/video_protocol.h) | Small image tiles used by RetroArch |
+| [`tools/`](tools/) | Asset packing (`pack_assets.py`), simulator (`sim.py`), and host checks, run on your computer |
+| [`assets/`](assets/) | Asset manifests (`*.json`) and source PNGs |
+| [`scripts/deploy.py`](scripts/deploy.py) | One-command deploy: pack assets, build the ZIP, push, flash |
 | [`retroarch/`](retroarch/README.md) | Linux launcher and control mapping |
 
 The controls and enclosure are based on the [Arduino UNO Q Arcade Bundle](https://projecthub.arduino.cc/Arduino_Genuino/uno-q-arcade-bundle-b272c5), with the [DIYables TFT shield](https://diyables.io/products/3.5-320x480-tft-lcd-color-touch-screen-shield-for-arduino-uno-mega) added as the console display.
@@ -206,7 +283,8 @@ After editing local files, run `make flash` again. It replaces those source path
 | `make monitor` | Open the MCU serial monitor |
 | `make logs` | Follow Python output, including `print()` and errors |
 | `make stop` | Stop this track's terminal-managed app |
-| `make package` | Create `build/uno-q-arcade.zip` for App Lab import |
+| `make package` | Pack assets and create `build/uno-q-arcade.zip` for App Lab import |
+| `python scripts/deploy.py` | Same as `make flash` without GNU Make or `zip` (works on Windows); `--bench` deploys the benchmark, `--logs` follows the log |
 | `make build` | Compile only the MCU sketch locally with [Arduino CLI](https://arduino.github.io/arduino-cli/) |
 | `make clean` | Remove this track's local ZIP and sketch build |
 
@@ -256,7 +334,7 @@ Connect the Modulinos through **Qwiic / `Wire1`**, leaving the TFT pins dedicate
 
 ### Board software
 
-Use the MCU runtime matching the pinned Zephyr **0.55.2** core. Follow Arduino's [Zephyr migration instructions](https://support.arduino.cc/hc/en-us/articles/27251870677916-Migrating-to-Zephyr-core-0-55-0-on-UNO-Q) when preparing an older board. Keep the full dependency list in [`sketch.yaml`](sketch/sketch.yaml).
+Use the MCU runtime matching the pinned Zephyr core in [`sketch.yaml`](sketch/sketch.yaml) (**1.0.0**, the version installed on the hackathon consoles' images). A sketch built for a different core uploads without errors but never registers its Bridge methods: Python then logs `method arcade_read_inputs not available`. Follow Arduino's [Zephyr migration instructions](https://support.arduino.cc/hc/en-us/articles/27251870677916-Migrating-to-Zephyr-core-0-55-0-on-UNO-Q) when preparing an older board. Keep the full dependency list in `sketch.yaml`.
 
 Run the [Arcade starter](#2-run-the-app-lab-starter) with the fitted display controller selected. The title, control states, and marker should fit the screen. For display-only setup, the [DIYables library](https://github.com/DIYables/DIYables_TFT_Touch_Shield) includes `DrawShapes` and `ShowTextAndNumber` examples for each supported controller.
 

@@ -1,0 +1,861 @@
+{
+ "assets": [
+  {
+   "name": "card_u",
+   "size": [
+    44,
+    60
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_u_00.png",
+    "ui/card_u_01.png",
+    "ui/card_u_02.png",
+    "ui/card_u_03.png",
+    "ui/card_u_04.png",
+    "ui/card_u_05.png",
+    "ui/card_u_06.png",
+    "ui/card_u_07.png",
+    "ui/card_u_08.png",
+    "ui/card_u_09.png",
+    "ui/card_u_10.png",
+    "ui/card_u_11.png",
+    "ui/card_u_12.png",
+    "ui/card_u_13.png",
+    "ui/card_u_14.png",
+    "ui/card_u_15.png",
+    "ui/card_u_16.png",
+    "ui/card_u_17.png",
+    "ui/card_u_18.png",
+    "ui/card_u_19.png",
+    "ui/card_u_20.png",
+    "ui/card_u_21.png",
+    "ui/card_u_22.png",
+    "ui/card_u_23.png",
+    "ui/card_u_24.png",
+    "ui/card_u_25.png",
+    "ui/card_u_26.png",
+    "ui/card_u_27.png",
+    "ui/card_u_28.png",
+    "ui/card_u_29.png",
+    "ui/card_u_30.png",
+    "ui/card_u_31.png",
+    "ui/card_u_32.png",
+    "ui/card_u_33.png",
+    "ui/card_u_34.png",
+    "ui/card_u_35.png",
+    "ui/card_u_36.png",
+    "ui/card_u_37.png",
+    "ui/card_u_38.png",
+    "ui/card_u_39.png",
+    "ui/card_u_40.png",
+    "ui/card_u_41.png",
+    "ui/card_u_42.png",
+    "ui/card_u_43.png",
+    "ui/card_u_44.png",
+    "ui/card_u_45.png",
+    "ui/card_u_46.png",
+    "ui/card_u_47.png"
+   ]
+  },
+  {
+   "name": "card_r",
+   "size": [
+    44,
+    60
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_r_00.png",
+    "ui/card_r_01.png",
+    "ui/card_r_02.png",
+    "ui/card_r_03.png",
+    "ui/card_r_04.png",
+    "ui/card_r_05.png",
+    "ui/card_r_06.png",
+    "ui/card_r_07.png",
+    "ui/card_r_08.png",
+    "ui/card_r_09.png",
+    "ui/card_r_10.png",
+    "ui/card_r_11.png",
+    "ui/card_r_12.png",
+    "ui/card_r_13.png",
+    "ui/card_r_14.png",
+    "ui/card_r_15.png",
+    "ui/card_r_16.png",
+    "ui/card_r_17.png",
+    "ui/card_r_18.png",
+    "ui/card_r_19.png",
+    "ui/card_r_20.png",
+    "ui/card_r_21.png",
+    "ui/card_r_22.png",
+    "ui/card_r_23.png",
+    "ui/card_r_24.png",
+    "ui/card_r_25.png",
+    "ui/card_r_26.png",
+    "ui/card_r_27.png",
+    "ui/card_r_28.png",
+    "ui/card_r_29.png",
+    "ui/card_r_30.png",
+    "ui/card_r_31.png",
+    "ui/card_r_32.png",
+    "ui/card_r_33.png",
+    "ui/card_r_34.png",
+    "ui/card_r_35.png",
+    "ui/card_r_36.png",
+    "ui/card_r_37.png",
+    "ui/card_r_38.png",
+    "ui/card_r_39.png",
+    "ui/card_r_40.png",
+    "ui/card_r_41.png",
+    "ui/card_r_42.png",
+    "ui/card_r_43.png",
+    "ui/card_r_44.png",
+    "ui/card_r_45.png",
+    "ui/card_r_46.png",
+    "ui/card_r_47.png"
+   ]
+  },
+  {
+   "name": "card_s_u",
+   "size": [
+    36,
+    50
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_s_u_00.png",
+    "ui/card_s_u_01.png",
+    "ui/card_s_u_02.png",
+    "ui/card_s_u_03.png",
+    "ui/card_s_u_04.png",
+    "ui/card_s_u_05.png",
+    "ui/card_s_u_06.png",
+    "ui/card_s_u_07.png",
+    "ui/card_s_u_08.png",
+    "ui/card_s_u_09.png",
+    "ui/card_s_u_10.png",
+    "ui/card_s_u_11.png",
+    "ui/card_s_u_12.png",
+    "ui/card_s_u_13.png",
+    "ui/card_s_u_14.png",
+    "ui/card_s_u_15.png",
+    "ui/card_s_u_16.png",
+    "ui/card_s_u_17.png",
+    "ui/card_s_u_18.png",
+    "ui/card_s_u_19.png",
+    "ui/card_s_u_20.png",
+    "ui/card_s_u_21.png",
+    "ui/card_s_u_22.png",
+    "ui/card_s_u_23.png",
+    "ui/card_s_u_24.png",
+    "ui/card_s_u_25.png",
+    "ui/card_s_u_26.png",
+    "ui/card_s_u_27.png",
+    "ui/card_s_u_28.png",
+    "ui/card_s_u_29.png",
+    "ui/card_s_u_30.png",
+    "ui/card_s_u_31.png",
+    "ui/card_s_u_32.png",
+    "ui/card_s_u_33.png",
+    "ui/card_s_u_34.png",
+    "ui/card_s_u_35.png",
+    "ui/card_s_u_36.png",
+    "ui/card_s_u_37.png",
+    "ui/card_s_u_38.png",
+    "ui/card_s_u_39.png",
+    "ui/card_s_u_40.png",
+    "ui/card_s_u_41.png",
+    "ui/card_s_u_42.png",
+    "ui/card_s_u_43.png",
+    "ui/card_s_u_44.png",
+    "ui/card_s_u_45.png",
+    "ui/card_s_u_46.png",
+    "ui/card_s_u_47.png"
+   ]
+  },
+  {
+   "name": "card_s_r",
+   "size": [
+    36,
+    50
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_s_r_00.png",
+    "ui/card_s_r_01.png",
+    "ui/card_s_r_02.png",
+    "ui/card_s_r_03.png",
+    "ui/card_s_r_04.png",
+    "ui/card_s_r_05.png",
+    "ui/card_s_r_06.png",
+    "ui/card_s_r_07.png",
+    "ui/card_s_r_08.png",
+    "ui/card_s_r_09.png",
+    "ui/card_s_r_10.png",
+    "ui/card_s_r_11.png",
+    "ui/card_s_r_12.png",
+    "ui/card_s_r_13.png",
+    "ui/card_s_r_14.png",
+    "ui/card_s_r_15.png",
+    "ui/card_s_r_16.png",
+    "ui/card_s_r_17.png",
+    "ui/card_s_r_18.png",
+    "ui/card_s_r_19.png",
+    "ui/card_s_r_20.png",
+    "ui/card_s_r_21.png",
+    "ui/card_s_r_22.png",
+    "ui/card_s_r_23.png",
+    "ui/card_s_r_24.png",
+    "ui/card_s_r_25.png",
+    "ui/card_s_r_26.png",
+    "ui/card_s_r_27.png",
+    "ui/card_s_r_28.png",
+    "ui/card_s_r_29.png",
+    "ui/card_s_r_30.png",
+    "ui/card_s_r_31.png",
+    "ui/card_s_r_32.png",
+    "ui/card_s_r_33.png",
+    "ui/card_s_r_34.png",
+    "ui/card_s_r_35.png",
+    "ui/card_s_r_36.png",
+    "ui/card_s_r_37.png",
+    "ui/card_s_r_38.png",
+    "ui/card_s_r_39.png",
+    "ui/card_s_r_40.png",
+    "ui/card_s_r_41.png",
+    "ui/card_s_r_42.png",
+    "ui/card_s_r_43.png",
+    "ui/card_s_r_44.png",
+    "ui/card_s_r_45.png",
+    "ui/card_s_r_46.png",
+    "ui/card_s_r_47.png"
+   ]
+  },
+  {
+   "name": "scrap",
+   "size": [
+    44,
+    60
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/scrap_00.png",
+    "ui/scrap_01.png",
+    "ui/scrap_02.png",
+    "ui/scrap_03.png",
+    "ui/scrap_04.png",
+    "ui/scrap_05.png",
+    "ui/scrap_06.png",
+    "ui/scrap_07.png",
+    "ui/scrap_08.png",
+    "ui/scrap_09.png",
+    "ui/scrap_10.png"
+   ]
+  },
+  {
+   "name": "scrap_s",
+   "size": [
+    36,
+    50
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/scrap_s_00.png",
+    "ui/scrap_s_01.png",
+    "ui/scrap_s_02.png",
+    "ui/scrap_s_03.png",
+    "ui/scrap_s_04.png",
+    "ui/scrap_s_05.png",
+    "ui/scrap_s_06.png",
+    "ui/scrap_s_07.png",
+    "ui/scrap_s_08.png",
+    "ui/scrap_s_09.png",
+    "ui/scrap_s_10.png"
+   ]
+  },
+  {
+   "name": "card_chewed_s",
+   "size": [
+    36,
+    50
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_chewed_s_00.png",
+    "ui/card_chewed_s_01.png",
+    "ui/card_chewed_s_02.png"
+   ]
+  },
+  {
+   "name": "card_droppings",
+   "size": [
+    44,
+    60
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_droppings_00.png"
+   ]
+  },
+  {
+   "name": "card_droppings_s",
+   "size": [
+    36,
+    50
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_droppings_s_00.png"
+   ]
+  },
+  {
+   "name": "card_back",
+   "size": [
+    48,
+    64
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_back_00.png"
+   ]
+  },
+  {
+   "name": "card_back_s",
+   "size": [
+    40,
+    54
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/card_back_s_00.png"
+   ]
+  },
+  {
+   "name": "ui_corner",
+   "size": [
+    10,
+    10
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_corner_00.png"
+   ]
+  },
+  {
+   "name": "ui_diamond",
+   "size": [
+    5,
+    5
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_diamond_00.png",
+    "ui/ui_diamond_01.png"
+   ]
+  },
+  {
+   "name": "ui_star",
+   "size": [
+    5,
+    5
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_star_00.png",
+    "ui/ui_star_01.png"
+   ]
+  },
+  {
+   "name": "ui_gem",
+   "size": [
+    5,
+    5
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_gem_00.png",
+    "ui/ui_gem_01.png",
+    "ui/ui_gem_02.png",
+    "ui/ui_gem_03.png",
+    "ui/ui_gem_04.png",
+    "ui/ui_gem_05.png",
+    "ui/ui_gem_06.png",
+    "ui/ui_gem_07.png",
+    "ui/ui_gem_08.png"
+   ]
+  },
+  {
+   "name": "ui_charm",
+   "size": [
+    8,
+    8
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_charm_00.png",
+    "ui/ui_charm_01.png",
+    "ui/ui_charm_02.png",
+    "ui/ui_charm_03.png",
+    "ui/ui_charm_04.png",
+    "ui/ui_charm_05.png",
+    "ui/ui_charm_06.png",
+    "ui/ui_charm_07.png",
+    "ui/ui_charm_08.png"
+   ]
+  },
+  {
+   "name": "ui_elem",
+   "size": [
+    9,
+    9
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_elem_00.png",
+    "ui/ui_elem_01.png",
+    "ui/ui_elem_02.png",
+    "ui/ui_elem_03.png"
+   ]
+  },
+  {
+   "name": "ui_elem_s",
+   "size": [
+    7,
+    7
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_elem_s_00.png",
+    "ui/ui_elem_s_01.png",
+    "ui/ui_elem_s_02.png",
+    "ui/ui_elem_s_03.png"
+   ]
+  },
+  {
+   "name": "ui_status",
+   "size": [
+    12,
+    12
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_status_00.png",
+    "ui/ui_status_01.png",
+    "ui/ui_status_02.png",
+    "ui/ui_status_03.png",
+    "ui/ui_status_04.png"
+   ]
+  },
+  {
+   "name": "ui_status_s",
+   "size": [
+    9,
+    9
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_status_s_00.png",
+    "ui/ui_status_s_01.png",
+    "ui/ui_status_s_02.png",
+    "ui/ui_status_s_03.png",
+    "ui/ui_status_s_04.png"
+   ]
+  },
+  {
+   "name": "ui_paw",
+   "size": [
+    15,
+    11
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_paw_00.png"
+   ]
+  },
+  {
+   "name": "ui_heart",
+   "size": [
+    9,
+    9
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_heart_00.png"
+   ]
+  },
+  {
+   "name": "ui_treat",
+   "size": [
+    9,
+    9
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_treat_00.png"
+   ]
+  },
+  {
+   "name": "ui_arrow",
+   "size": [
+    7,
+    5
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_arrow_00.png",
+    "ui/ui_arrow_01.png"
+   ]
+  },
+  {
+   "name": "ui_tri_down",
+   "size": [
+    7,
+    4
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_tri_down_00.png",
+    "ui/ui_tri_down_01.png"
+   ]
+  },
+  {
+   "name": "ui_btn",
+   "size": [
+    13,
+    13
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_btn_00.png",
+    "ui/ui_btn_01.png",
+    "ui/ui_btn_02.png"
+   ]
+  },
+  {
+   "name": "ui_bracket",
+   "size": [
+    7,
+    7
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_bracket_00.png"
+   ]
+  },
+  {
+   "name": "ui_moon_eye",
+   "size": [
+    23,
+    23
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_moon_eye_00.png",
+    "ui/ui_moon_eye_01.png",
+    "ui/ui_moon_eye_02.png"
+   ]
+  },
+  {
+   "name": "ui_moon_eye_s",
+   "size": [
+    15,
+    15
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_moon_eye_s_00.png"
+   ]
+  },
+  {
+   "name": "ui_candle",
+   "size": [
+    5,
+    20
+   ],
+   "fps": 4,
+   "frames": [
+    "ui/ui_candle_00.png",
+    "ui/ui_candle_01.png"
+   ]
+  },
+  {
+   "name": "ui_sparkle",
+   "size": [
+    5,
+    5
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_sparkle_00.png",
+    "ui/ui_sparkle_01.png"
+   ]
+  },
+  {
+   "name": "ui_plaque_fight",
+   "size": [
+    92,
+    64
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_plaque_fight_00.png",
+    "ui/ui_plaque_fight_01.png"
+   ]
+  },
+  {
+   "name": "ui_tut_arrow",
+   "size": [
+    9,
+    9
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_tut_arrow_00.png",
+    "ui/ui_tut_arrow_01.png",
+    "ui/ui_tut_arrow_02.png",
+    "ui/ui_tut_arrow_03.png"
+   ]
+  },
+  {
+   "name": "ui_node",
+   "size": [
+    20,
+    20
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_node_00.png",
+    "ui/ui_node_01.png",
+    "ui/ui_node_02.png",
+    "ui/ui_node_03.png",
+    "ui/ui_node_04.png",
+    "ui/ui_node_05.png",
+    "ui/ui_node_06.png"
+   ]
+  },
+  {
+   "name": "ui_node_dim",
+   "size": [
+    20,
+    20
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_node_dim_00.png",
+    "ui/ui_node_dim_01.png",
+    "ui/ui_node_dim_02.png",
+    "ui/ui_node_dim_03.png",
+    "ui/ui_node_dim_04.png",
+    "ui/ui_node_dim_05.png",
+    "ui/ui_node_dim_06.png"
+   ]
+  },
+  {
+   "name": "ui_bell",
+   "size": [
+    14,
+    16
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_bell_00.png",
+    "ui/ui_bell_01.png"
+   ]
+  },
+  {
+   "name": "ui_link",
+   "size": [
+    9,
+    9
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_link_00.png",
+    "ui/ui_link_01.png",
+    "ui/ui_link_02.png",
+    "ui/ui_link_03.png",
+    "ui/ui_link_04.png",
+    "ui/ui_link_05.png",
+    "ui/ui_link_06.png"
+   ]
+  },
+  {
+   "name": "ui_star_dust",
+   "size": [
+    32,
+    32
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/ui_star_dust_00.png"
+   ]
+  },
+  {
+   "name": "fx_slash",
+   "size": [
+    40,
+    40
+   ],
+   "fps": 16,
+   "frames": [
+    "ui/fx_slash_00.png",
+    "ui/fx_slash_01.png",
+    "ui/fx_slash_02.png",
+    "ui/fx_slash_03.png"
+   ]
+  },
+  {
+   "name": "fx_spark",
+   "size": [
+    12,
+    12
+   ],
+   "fps": 16,
+   "frames": [
+    "ui/fx_spark_00.png",
+    "ui/fx_spark_01.png",
+    "ui/fx_spark_02.png",
+    "ui/fx_spark_03.png"
+   ]
+  },
+  {
+   "name": "fx_part",
+   "size": [
+    8,
+    8
+   ],
+   "fps": 12,
+   "frames": [
+    "ui/fx_part_00.png",
+    "ui/fx_part_01.png",
+    "ui/fx_part_02.png",
+    "ui/fx_part_03.png",
+    "ui/fx_part_04.png",
+    "ui/fx_part_05.png",
+    "ui/fx_part_06.png",
+    "ui/fx_part_07.png",
+    "ui/fx_part_08.png",
+    "ui/fx_part_09.png",
+    "ui/fx_part_10.png",
+    "ui/fx_part_11.png"
+   ]
+  },
+  {
+   "name": "fx_heal",
+   "size": [
+    8,
+    8
+   ],
+   "fps": 12,
+   "frames": [
+    "ui/fx_heal_00.png",
+    "ui/fx_heal_01.png",
+    "ui/fx_heal_02.png"
+   ]
+  },
+  {
+   "name": "fx_curl",
+   "size": [
+    16,
+    16
+   ],
+   "fps": 12,
+   "frames": [
+    "ui/fx_curl_00.png",
+    "ui/fx_curl_01.png",
+    "ui/fx_curl_02.png"
+   ]
+  },
+  {
+   "name": "fx_meow",
+   "size": [
+    72,
+    30
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/fx_meow_00.png",
+    "ui/fx_meow_01.png"
+   ]
+  },
+  {
+   "name": "fx_hiss",
+   "size": [
+    24,
+    24
+   ],
+   "fps": 8,
+   "frames": [
+    "ui/fx_hiss_00.png",
+    "ui/fx_hiss_01.png"
+   ]
+  },
+  {
+   "name": "fx_bite",
+   "size": [
+    14,
+    14
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/fx_bite_00.png"
+   ]
+  },
+  {
+   "name": "bg_attic",
+   "size": [
+    480,
+    232
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/bg_attic_00.png"
+   ]
+  },
+  {
+   "name": "bg_title",
+   "size": [
+    480,
+    320
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/bg_title_00.png"
+   ]
+  },
+  {
+   "name": "bg_parlor",
+   "size": [
+    480,
+    320
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/bg_parlor_00.png"
+   ]
+  },
+  {
+   "name": "bg_path",
+   "size": [
+    480,
+    320
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/bg_path_00.png"
+   ]
+  },
+  {
+   "name": "bg_end",
+   "size": [
+    480,
+    320
+   ],
+   "fps": 0,
+   "frames": [
+    "ui/bg_end_00.png"
+   ]
+  }
+ ]
+}

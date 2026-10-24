@@ -7,16 +7,22 @@ MOVEMENT_ZERO_MG = (50, -75, 1034)
 MOVEMENT_DEAD_ZONE_MG = 20
 
 
-def frame_values(inputs):
-    limits = {
-        "connected": (0, 7), "buttons": (0, 15),
-        "x": (-127, 128), "y": (-127, 128),
-        "ax": (-16000, 16000), "ay": (-16000, 16000), "az": (-16000, 16000),
-    }
-    for key, (low, high) in limits.items():
+LIMITS = {
+    "connected": (0, 7), "buttons": (0, 15),
+    "x": (-127, 128), "y": (-127, 128),
+    "ax": (-16000, 16000), "ay": (-16000, 16000), "az": (-16000, 16000),
+}
+
+
+def validate_inputs(inputs):
+    for key, (low, high) in LIMITS.items():
         value = inputs[key]
         if type(value) is not int or not low <= value <= high:
             raise ValueError(f"Invalid arcade input: {key}")
+
+
+def frame_values(inputs):
+    validate_inputs(inputs)
 
     connected = inputs["connected"]
     x = inputs["x"] if connected & 2 else 0

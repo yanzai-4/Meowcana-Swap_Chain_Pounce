@@ -1,0 +1,497 @@
+{
+  "palette": "design/styles/moonlit-grimoire/pal.py",
+  "alpha": "1-bit",
+  "characters": [
+    {
+      "name": "domino",
+      "role": "hero",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "right",
+      "baseline": "bottom row of canvas",
+      "base": "characters/domino/base.png",
+      "portrait": {
+        "file": "characters/domino/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 4,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 4,
+          "fps": 8,
+          "source": "pixellab"
+        },
+        "cast": {
+          "frames": 4,
+          "fps": 8,
+          "source": "pixellab"
+        },
+        "victory": {
+          "frames": 4,
+          "fps": 6,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "zero",
+      "role": "guide",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "right",
+      "baseline": "bottom row of canvas",
+      "base": "characters/zero/base.png",
+      "portrait": {
+        "file": "characters/zero/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "spots",
+      "role": "merchant",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/spots/base.png",
+      "portrait": {
+        "file": "characters/spots/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "granny_oriel",
+      "role": "npc",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "right",
+      "baseline": "bottom row of canvas",
+      "base": "characters/granny_oriel/base.png",
+      "portrait": {
+        "file": "characters/granny_oriel/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "gray_rat",
+      "role": "enemy",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/gray_rat/base.png",
+      "portrait": {
+        "file": "characters/gray_rat/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "pickpocket",
+      "role": "enemy",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/pickpocket/base.png",
+      "portrait": {
+        "file": "characters/pickpocket/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "paper_chewer",
+      "role": "enemy",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/paper_chewer/base.png",
+      "portrait": {
+        "file": "characters/paper_chewer/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "stinker",
+      "role": "enemy",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/stinker/base.png",
+      "portrait": {
+        "file": "characters/stinker/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "rat_sergeant",
+      "role": "enemy",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/rat_sergeant/base.png",
+      "portrait": {
+        "file": "characters/rat_sergeant/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "sir_flea",
+      "role": "elite",
+      "size": [
+        80,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/sir_flea/base.png",
+      "portrait": {
+        "file": "characters/sir_flea/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "dog_ear",
+      "role": "elite",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/dog_ear/base.png",
+      "portrait": {
+        "file": "characters/dog_ear/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "chubbs",
+      "role": "boss",
+      "size": [
+        96,
+        96
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/chubbs/base.png",
+      "portrait": {
+        "file": "characters/chubbs/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 4,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "chubbs_hungry",
+      "role": "boss",
+      "size": [
+        96,
+        96
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/chubbs_hungry/base.png",
+      "portrait": {
+        "file": "characters/chubbs_hungry/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 2,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "practice_mouse",
+      "role": "tutorial",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/practice_mouse/base.png",
+      "portrait": {
+        "file": "characters/practice_mouse/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "dust_mouse",
+      "role": "tutorial",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/dust_mouse/base.png",
+      "portrait": {
+        "file": "characters/dust_mouse/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    },
+    {
+      "name": "coin_mouse",
+      "role": "tutorial",
+      "size": [
+        64,
+        64
+      ],
+      "facing": "left",
+      "baseline": "bottom row of canvas",
+      "base": "characters/coin_mouse/base.png",
+      "portrait": {
+        "file": "characters/coin_mouse/portrait.png",
+        "size": [
+          48,
+          48
+        ]
+      },
+      "animations": {
+        "idle": {
+          "frames": 2,
+          "fps": 4,
+          "source": "pixellab"
+        },
+        "attack": {
+          "frames": 3,
+          "fps": 8,
+          "source": "pixellab"
+        }
+      },
+      "final": true
+    }
+  ]
+}
