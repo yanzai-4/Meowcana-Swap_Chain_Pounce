@@ -48,7 +48,10 @@ class TitleScene(Scene):
         self.items = []
         self.sel = 0
         self.buttons = []
-        self.footer = W.Footer(left=[("txt", "Demo")], hints=[], divider_line=False)
+        pc = getattr(getattr(services, "app", None), "pc", False)
+        left = [("tiny", ["Mouse: click to choose, right-click to go back.",
+                          "Keys: Enter, Backspace, I = info, Esc = menu."])] if pc else [("txt", "Demo")]
+        self.footer = W.Footer(left=left, hints=[], divider_line=False)
         self._band_dirty = True
         self._records_drawn = False
         self._stars = [None] * len(STARS)

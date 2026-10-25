@@ -34,6 +34,7 @@ from nla.rules.battle import simulate
 from nla.rules.cards import Card
 from nla.rules.enemies import ENEMIES
 from nla.ui import theme as T
+from nla.ui import widgets as W
 from nla.ui.app import App
 from nla.ui.input import Input
 
@@ -76,6 +77,7 @@ class GatedInput(Input):
     mask = None
     on_hold = None          # callable() -> bool: True when it opened the Menu
     menu = False            # set by the PC runner for one frame: open the Menu now
+    pc = False              # PC: B is delivered immediately (no hold-B)
 
     def __init__(self):
         super().__init__()
@@ -85,18 +87,19 @@ class GatedInput(Input):
 
     def update(self, ctl, dt):
         super().update(ctl, dt)
-        if self.b:
-            self.b = False
-            self._b_down, self._b_fired, self.b_time = True, False, 0.0
-        if self._b_down:
-            if self.held_b:
-                self.b_time += dt
-                if not self._b_fired and self.b_time >= HOLD_B and self.on_hold is not None and self.on_hold():
-                    self._b_fired = True
-            else:
-                if not self._b_fired:
-                    self.b = True
-                self._b_down, self._b_fired, self.b_time = False, False, 0.0
+        if not self.pc:
+            if self.b:
+                self.b = False
+                self._b_down, self._b_fired, self.b_time = True, False, 0.0
+            if self._b_down:
+                if self.held_b:
+                    self.b_time += dt
+                    if not self._b_fired and self.b_time >= HOLD_B and self.on_hold is not None and self.on_hold():
+                        self._b_fired = True
+                else:
+                    if not self._b_fired:
+                        self.b = True
+                    self._b_down, self._b_fired, self.b_time = False, False, 0.0
         if self.menu:                                   # PC: Esc / the synthesized "menu" input = a completed hold of B
             self.menu = False
             if self.on_hold is not None:
@@ -133,7 +136,16 @@ class FlowApp(App):
         for f in after:
             f()
 
-    pc = False                  # the PC runner sets it: tutorial lines then say "Click" instead of "Press A"
+    @property
+    def pc(self):
+        """The PC runner sets it: names say Click / Right-click / I instead of A / B / C, B is not deferred (no hold-B
+        Menu; Esc and M open it), and the footer draws keycaps. Always False on the board."""
+        return self.input.pc
+
+    @pc.setter
+    def pc(self, value):
+        self.input.pc = bool(value)
+        W.PC = bool(value)
 
     def say(self, lines, on_done=None):
         super().say(story.pc_lines(lines) if self.pc else lines, on_done)
@@ -250,7 +262,7 @@ class FlowApp(App):
             scr.fill_rect(0, 0, T.SCREEN_W, T.SCREEN_H, T.GROUND)
             scr.text_center(110, "Something went wrong", T.FOCUS, T.GROUND, font=T.TITLE, scale=2)
             scr.text_center(180, "Your night is safe.", T.TEXT, T.GROUND)
-            scr.text_center(210, "Press A to go on", T.LABEL, T.GROUND)
+            scr.text_center(210, "Click to go on" if self.pc else "Press A to go on", T.LABEL, T.GROUND)
 
     # ------------------------------------------------------------------ last-resort guard
     def _crash(self):
@@ -404,10 +416,11 @@ def _after(app, fn):
 
 # ============================================================================================ flow
 class Flow:
-    def __init__(self, data_dir=None):
+    def __init__(self, data_dir=None, pc=False):
         self.data_dir = data_dir
         profile = S.load_profile(os.path.join(data_dir, "profile.json")) if data_dir else S.Profile()
         self.app = FlowApp()
+        self.app.pc = pc                    # before the first scene exists: it picks its wording from app.pc
         self.svc = Services(self.app, profile, data_dir, flow=self)
         self.app.flow = self
         self.tutorial = None
@@ -711,6 +724,6 @@ class Flow:
         self.app.reset(scene_class("PathScene")(self.svc, self._node_chosen), transition=False)
 
 
-def make(data_dir=None):
-    """The game object for the engine Runner (and `tools/sim.py --game nla.flow:make`)."""
-    return Flow(data_dir if data_dir is not None else default_data_dir()).app
+def make(data_dir=None, pc=False):
+    """The game object for the engine Runner (and `tools/sim.py --game nla.flow:make`); pc=True: PC wording."""
+    return Flow(data_dir if data_dir is not None else default_data_dir(), pc).app

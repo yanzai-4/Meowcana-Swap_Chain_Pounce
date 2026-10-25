@@ -154,7 +154,7 @@ class MenuScene(NodeScene):
         if key == "resume":
             self.finish("resume")
         elif key == "how":
-            self.sv.app.open(HowToPlay(story.HOW_TO_PLAY))
+            self.sv.app.open(HowToPlay(story.HOW_TO_PLAY_PC if getattr(self.sv.app, "pc", False) else story.HOW_TO_PLAY))
         elif key == "save_quit":
             self.sv.save()
             self.finish("save_quit")

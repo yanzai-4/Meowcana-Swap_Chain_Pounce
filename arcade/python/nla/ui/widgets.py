@@ -775,6 +775,9 @@ class ChipRow:
 
 # --------------------------------------------------------------------------- Footer
 _BTN = {"A": 0, "B": 1, "C": 2}
+PC = False          # the PC runner sets it (FlowApp.pc): footer/prompt text names mouse and keys instead of A/B/C
+PC_CAPS = {"A": "Click", "B": "Right-click", "C": "I"}
+PC_CAPS_SHORT = {"A": "Click", "B": "R-Click", "C": "I"}
 
 
 class Footer:
@@ -830,6 +833,8 @@ class Footer:
             elif kind in ("hp", "treat"):
                 parts.append(("i", "ui_heart" if kind == "hp" else "ui_treat", item[1],
                               T.TEXT))
+            elif kind == "tiny":
+                parts.append(("l", item[1]))
             elif kind == "bar":
                 parts.append(("b", item[1:]))
         # measure first so the block is repainted in one clear
@@ -837,6 +842,8 @@ class Footer:
         for p in parts:
             if p[0] == "t":
                 width += scr.measure(p[1], T.BODY)[0] + 10
+            elif p[0] == "l":
+                width += max(scr.measure(s, T.TINY)[0] for s in p[1]) + 10
             elif p[0] == "i":
                 width += 12 + scr.measure(p[2], T.BODY)[0] + 12
             else:
@@ -847,6 +854,10 @@ class Footer:
             if p[0] == "t":
                 scr.text(x, ty, p[1], p[2], self.bg)
                 x += scr.measure(p[1], T.BODY)[0] + 10
+            elif p[0] == "l":
+                for k, line in enumerate(p[1]):
+                    scr.text(x, self.y + 2 + k * 10, line, T.MUTED, self.bg, T.TINY)
+                x += max(scr.measure(s, T.TINY)[0] for s in p[1]) + 10
             elif p[0] == "i":
                 a = _a(p[1])
                 scr.blit(a, 0, x, self.y + (self.h - a.h) // 2, bg=self.bg)
@@ -865,6 +876,8 @@ class Footer:
         self._left_drawn = list(self.left)
 
     def _draw_hints(self, scr):
+        if PC:
+            return self._draw_hints_pc(scr)
         ty = self.y + (self.h - T.text_h(T.BODY)) // 2
         widths = [14 + scr.measure(label, T.BODY)[0] + 2 for _, label in self.hints]
         total = sum(widths) + self.gap * max(0, len(widths) - 1)
@@ -878,6 +891,36 @@ class Footer:
             scr.text(x + 16, ty, label, T.TEXT, self.bg)
             self._gems.append((letter, label, (x - 2, self.y, w + 4, self.h)))
             x += w + self.gap
+        self._hints_x = x0
+        self._hints_drawn = list(self.hints)
+        Footer.active = self
+
+    def _draw_hints_pc(self, scr):
+        """PC: keycap boxes instead of the A/B/C gems: [Click] Fight  [Right-click] Menu  [I] Info. The caps use the
+        TINY font; if the row would run into the status on the left, B shortens to [R-Click] and the gaps shrink."""
+        ty = self.y + (self.h - T.text_h(T.BODY)) // 2
+        room = T.INNER_R + 1 - self._left_end - 8
+        for caps, gap in ((PC_CAPS, 10), (PC_CAPS, 6), (PC_CAPS_SHORT, 6), (PC_CAPS_SHORT, 4)):
+            cw = [scr.measure(caps[letter], T.TINY)[0] + 7 for letter, _ in self.hints]
+            lw = [scr.measure(label, T.BODY)[0] for _, label in self.hints]
+            widths = [c + 3 + w for c, w in zip(cw, lw)]
+            total = sum(widths) + gap * max(0, len(widths) - 1)
+            if total <= room:
+                break
+        x0 = T.INNER_R + 1 - total
+        clear_x = min(x0, self._hints_x)
+        scr.fill_rect(clear_x, self.y, T.INNER_R + 1 - clear_x, self.h, self.bg)
+        x = x0
+        self._gems = []
+        cap_h = T.text_h(T.TINY) + 4
+        cy = self.y + (self.h - cap_h) // 2
+        for (letter, label), c, w in zip(self.hints, cw, widths):
+            scr.fill_rect(x, cy, c, cap_h, T.PANEL)
+            scr.rect(x, cy, c, cap_h, T.RULE_BRIGHT)
+            scr.text(x + 4, cy + 2, caps[letter], T.LABEL, T.PANEL, T.TINY)
+            scr.text(x + c + 3, ty, label, T.TEXT, self.bg)
+            self._gems.append((letter, label, (x - 2, self.y, w + 4, self.h)))
+            x += w + gap
         self._hints_x = x0
         self._hints_drawn = list(self.hints)
         Footer.active = self
@@ -1245,10 +1288,17 @@ class Dialogue(Overlay):
         on = int(self._clock * 2) % 2 == 0
         if on != self._blink_on:
             x, y, w, h = self.rect
-            gx, gy = x + w - 22, y + h - 20
-            scr.fill_rect(gx, gy, 13, 13, T.PANEL)
-            if on:
-                scr.blit(_a("ui_btn"), 0, gx, gy, bg=T.PANEL)
+            if PC:                               # a small "Click" keycap instead of the A gem
+                gx, gy = x + w - 52, y + h - 19
+                scr.fill_rect(gx, gy, 42, 13, T.PANEL)
+                if on:
+                    scr.rect(gx + 4, gy, 38, 13, T.RULE_BRIGHT)
+                    scr.text(gx + 8, gy + 2, PC_CAPS["A"], T.LABEL, T.PANEL, T.TINY)
+            else:
+                gx, gy = x + w - 22, y + h - 20
+                scr.fill_rect(gx, gy, 13, 13, T.PANEL)
+                if on:
+                    scr.blit(_a("ui_btn"), 0, gx, gy, bg=T.PANEL)
             self._blink_on = on
 
 

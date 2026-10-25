@@ -9,8 +9,21 @@ The same game code (`python/nla/`) runs on the UNO Q and on a Windows PC. The PC
 `arcade/pc/play.py` (and `Meowcana.bat` next to it): opens a 960x640 window (2x, integer scaling, F11
 fullscreen), runs the real game object from `nla.flow.make()` through the simulator's op decoder in real
 time (no device cost-model throttling), 30 fps. Saves go to `%APPDATA%/Meowcana/`.
-Keyboard: arrows/WASD = stick, Z/Enter/Space = A, X/Backspace = B, C/Tab = C, Esc = pause Menu.
-Mouse: move = hover, left click = select/do, right click = B, middle click = C, wheel = up/down.
+Keys and mouse (laptop-friendly: nothing needs a middle button or a held key):
+
+| Action | Mouse | Keyboard |
+| --- | --- | --- |
+| Confirm (A) | left click | Enter, Space |
+| Back (B) | right click | Backspace |
+| Info (C) | click the footer "Info" hint, middle click | I, Tab |
+| Pause Menu | right click where the footer says `Right-click Menu` (Path, Spread) | Esc, M |
+| Move | hover, wheel = up/down | arrows, WASD |
+| Battle | left click the speed hint = 1x/2x/4x, right click = Skip | Space/Enter = speed, Backspace = Skip, F = speed |
+| Window | | F11 fullscreen, N mute, - / = volume |
+
+Esc / M: inside an overlay (Dialogue, Info, Confirm) or the Menu they act like Back; otherwise they open the pause
+Menu. They never skip a battle or move a cursor. There is no hold-B on PC (`GatedInput` delivers B at once and draws no
+progress pip); `App.back_input()` turns Back into "menu" where the footer offers `B Menu`.
 
 ## Pointer API (game coordinates 480x320)
 
@@ -30,7 +43,12 @@ def pointer(self, x, y, kind) -> str | None:
 - Hover moves the cursor only; the tutorial gate may veto it (`App.pointer_gate`, set by the tutorial
   coach: when the current step doesn't allow the stick, hover does nothing).
 - Default when a scene/overlay has no `pointer()`: `"up"` → `"a"`, `"right"` → `"b"`, `"middle"` → `"c"`.
-- The footer's button gems (`A Fight  B Menu  C Info`) are clickable everywhere (handled once in UIKit).
+- The footer hints are clickable everywhere (handled once in UIKit). On PC `Footer` draws keycaps instead of the A/B/C
+  gems: `[Click] Fight  [Right-click] Menu  [I] Info` (TINY-font cap + BODY label; `[R-Click]` when the row is tight).
+  The Dialogue prompt is a blinking `[Click]` cap. The board still draws the gems.
+- PC wording lives behind `app.pc` (set by `flow.make(pc=True)`; also `widgets.PC`): `story.PC_TEXT` / `pc_lines()` for
+  tutorial lines, tips and nudges, `story.HOW_TO_PLAY_PC`, the Title footer's two help lines, battle help. Button names
+  on PC: Click, Right-click, I, Esc. Board text never changes.
 - Drag and drop on the Spread: `"down"` on a card picks it up, `"up"` over another slot drops it.
 - Hit rectangles must match what is drawn. Keep them in the scene next to the drawing code.
 

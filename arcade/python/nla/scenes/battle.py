@@ -229,7 +229,8 @@ class BattleScene(Scene):
         if not notes:
             notes.append((None, "No statuses right now", "Singe, Puff, Drowsy, Curl and Leap show up here."))
         body = ["You play a card, then the rat plays one. Cards go left to right.",
-                "A changes the speed (1x, 2x, 4x). B skips to the result."]
+                "Click the speed hint (or F) for 1x, 2x, 4x. Right-click skips." if getattr(self.app, "pc", False)
+                else "A changes the speed (1x, 2x, 4x). B skips to the result."]
         self.app.open(W.InfoOverlay("The Battle", "Round %s {.} Domino %d/%d HP" % (
             self.hud.round_label.msg[6:], self.hud.hero_bar.cur, self.hud.hero_bar.mx), body, notes=notes))
 

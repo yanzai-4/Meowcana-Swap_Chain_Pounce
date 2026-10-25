@@ -218,10 +218,36 @@ class App:
             target = self.overlays[-1][0] if self.overlays else self.scene
             fn = getattr(target, "pointer", None)
             out = fn(x, y, kind) if fn is not None else _POINTER_DEFAULT.get(kind)
+            if kind == "right" and out == "b":
+                out = self.back_input()
         if out is not None and out in _POINTER_INPUTS:
             self.input.inject(out)
             return out
         return None
+
+    def back_input(self):
+        """PC Back (right click / Backspace): "b", except where the footer says B is Menu (nothing to cancel):
+        there it opens the pause Menu, since PC has no hold-B."""
+        footer = Footer.active
+        if not self.overlays and footer is not None and ("B", "Menu") in footer.hints:
+            return "menu"
+        return "b"
+
+    def pc_key(self, name):
+        """PC keyboard actions that are not plain buttons: "back" (Backspace), "esc" and "menu" (M). Esc and M close or
+        back out of an open overlay / the Menu itself like B, otherwise open the pause Menu (they never skip a battle
+        or move a cursor). Returns the injected input."""
+        if self._trans is not None:
+            return None
+        in_menu = type(self.scene).__name__ == "MenuScene"
+        if name == "back":
+            out = self.back_input()
+        elif self.overlays or in_menu:
+            out = "b"
+        else:
+            out = "menu"
+        self.input.inject(out)
+        return out
 
     def draw(self, scr, full):
         self.busy = False

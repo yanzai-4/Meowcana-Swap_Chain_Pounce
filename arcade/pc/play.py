@@ -9,14 +9,15 @@ The game code is untouched: it draws through the engine's op stream, which tools
 window. Mouse events become `App.pointer(x, y, kind)` calls in game coordinates (docs/pc-version.md); sounds go to
 nla.sfx through pc/audio.py.
 
-Keys: arrows / WASD stick, Z Enter Space = A, X Backspace = B, C Tab = C, Esc = pause Menu, F11 fullscreen,
-M mute, - / = volume. Mouse: move hover, left click select, right click B, middle click C, wheel up/down.
+Keys: arrows / WASD stick; Enter, Space = A (Confirm); Backspace = B (Back); I, Tab = C (Info); Esc or M = pause Menu
+(or Back inside an overlay / the Menu); F fast-forward in battle; F11 fullscreen; N mute; - / = volume.
+Mouse: move hover, left click = Confirm, right click = Back, middle click = Info, wheel up/down.
 
 --script runs headless (SDL dummy video and audio) on a deterministic virtual clock; commands are separated by ';'
 (game coordinates, mouse events are synthesized at the matching window pixels so the real mapping is exercised):
 
     move X Y | click X Y | right X Y | middle X Y | wheel up|down [X Y] | drag X1 Y1 X2 Y2
-    key NAME [secs]   tap or hold a key (z x c enter esc up down left right w a s d space tab backspace f11 m)
+    key NAME [secs]   tap or hold a key (enter space backspace i tab esc m f up down left right w a s d f11 n)
     wait SECS         run the game for SECS virtual seconds
     shot NAME         save the window image to <shots>/NAME.png      scene   print the active scene and overlays
     expect SceneName  exit 1 unless that scene is active             sfx     print the sounds the mixer played
@@ -141,8 +142,7 @@ class Keys:
     def __init__(self, pg):
         k = pg
         self.buttons = {}
-        for keys, bit in (((k.K_z, k.K_RETURN, k.K_KP_ENTER, k.K_SPACE), 1), ((k.K_x, k.K_BACKSPACE), 2),
-                          ((k.K_c, k.K_TAB), 4)):
+        for keys, bit in (((k.K_RETURN, k.K_KP_ENTER, k.K_SPACE), 1), ((k.K_i, k.K_TAB), 4)):
             for key in keys:
                 self.buttons[key] = bit
         self.stick = {k.K_LEFT: (-1, 0), k.K_a: (-1, 0), k.K_RIGHT: (1, 0), k.K_d: (1, 0),
@@ -236,11 +236,11 @@ class Player:
         self.device = sim.Device(self.library)
         self.keys = Keys(pygame)
         self.bridge = Bridge(self.device, self.keys, engine, self.clock)
-        self.game = flow.make(self.data)
-        self.game.pc = True
+        self.game = flow.make(self.data, pc=True)
         self.runner = engine.Runner(self.game, self.bridge, fps=FPS + 3)
         self.quit = False
         self.hover = None
+        self.mouse_log = 0
         self.expose = True
 
     def _icon(self):
@@ -276,9 +276,15 @@ class Player:
             if key == pg.K_F11:
                 self.window.toggle_fullscreen()
                 self.expose = True
-            elif key == pg.K_ESCAPE:
-                self.game.input.inject("menu")
-            elif key == pg.K_m:
+            elif key in (pg.K_ESCAPE, pg.K_m):
+                self.game.pc_key("esc")
+            elif key == pg.K_BACKSPACE:
+                self.game.pc_key("back")
+            elif key == pg.K_f:
+                scene = self.game.scene
+                if type(scene).__name__ == "BattleScene" and scene.phase != "result":     # fast-forward = speed
+                    self.game.input.inject("a")
+            elif key == pg.K_n:
                 self.audio.toggle_mute()
             elif key in (pg.K_MINUS, pg.K_KP_MINUS):
                 self.audio.change_volume(-0.1)
@@ -300,9 +306,18 @@ class Player:
         elif e.type == pg.MOUSEMOTION:
             self.pointer(*e.pos, "move")
         elif e.type == pg.MOUSEBUTTONDOWN:
-            self.pointer(*e.pos, {1: "down", 2: "middle", 3: "right"}.get(e.button, "move"))
-        elif e.type == pg.MOUSEBUTTONUP and e.button == 1:
-            self.pointer(*e.pos, "up", clamp=True)
+            if self.mouse_log < 16:                # confirm the real button numbering in game.log
+                self.mouse_log += 1
+                print(f"mouse: button {e.button} down at {tuple(e.pos)} touch={getattr(e, 'touch', None)}", flush=True)
+            kind = {1: "down", 2: "middle", 3: "right"}.get(e.button)     # 4/5 are the wheel (MOUSEWHEEL below)
+            if kind:
+                self.pointer(*e.pos, kind, clamp=kind != "down")      # Back / Info also work on the letterbox bars
+        elif e.type == pg.MOUSEBUTTONUP:
+            if self.mouse_log < 16:
+                self.mouse_log += 1
+                print(f"mouse: button {e.button} up at {tuple(e.pos)}", flush=True)
+            if e.button == 1:
+                self.pointer(*e.pos, "up", clamp=True)
         elif e.type == pg.MOUSEWHEEL and e.y:
             x, y = pg.mouse.get_pos() if self.hover is None else self.window.to_window(*self.hover)
             self.pointer(x, y, "wheel_up" if e.y > 0 else "wheel_down")

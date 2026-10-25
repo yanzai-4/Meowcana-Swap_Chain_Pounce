@@ -61,7 +61,7 @@ class HowToPlayScene(Scene):
     def __init__(self, services, done=None, button="Continue"):
         super().__init__(done)
         self.svc = services
-        self.page = story.HOW_TO_PLAY
+        self.page = story.HOW_TO_PLAY_PC if getattr(services.app, "pc", False) else story.HOW_TO_PLAY
         self.footer = W.Footer(left=[("txt", "How to Play")], hints=[("A", button)])
 
     def update(self, ctl, dt):

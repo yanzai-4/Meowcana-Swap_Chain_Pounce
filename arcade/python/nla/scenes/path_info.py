@@ -109,7 +109,10 @@ class NodeInfo(W.Overlay):
             if intro:
                 text(T.INNER_L, 262, intro, T.MUTED)
         else:
+            pc = getattr(getattr(self, "_app", None), "pc", False)
             for k, fact in enumerate(FACTS.get(node.kind, [])):
+                if pc:
+                    fact = fact.replace("Press C on", "Press I on")
                 text(T.INNER_L + 8, 134 + 22 * k, "{.} " + fact, T.TEXT)
         steps.append((32, lambda s: W.Footer(hints=[("B", "Close")]).draw(s, True)))
         self._steps = steps

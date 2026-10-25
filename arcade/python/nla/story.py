@@ -392,18 +392,18 @@ TUTORIAL: list[Step] = [
 # wording instead. The board text above never changes. Same limits as every line: <= 46 chars, <= 2 lines.
 PC_TEXT: dict[str, str] = {
     "Oh! Before we start, press A to say hi.\nA is your Do button.":
-        "Oh! Before we start, click to say hi.\nLeft click is your Do button (A).",
+        "Oh! Before we start, click to say hi.\nClick is your Do button.",
     "Press C to peek at it. Press C to close.":
-        "Press C (or middle-click) to peek at it.\nPress C again to close.",
+        "Press I (or middle-click) to peek at it.\nPress I again to close.",
     "Ready? Press A on FIGHT!": "Ready? Click FIGHT!",
     "Move to FIGHT and press A. Go go go!": "Click FIGHT! Go go go!",
     "Too slow? Press A to go faster!": "Too slow? Click to go faster!",
     "Press A. It makes the battle zoom.": "Click! It makes the battle zoom.",
-    "Press B to skip to the end.": "Right-click (or press B) to skip to the end.",
+    "Press B to skip to the end.": "Right-click (or Backspace) to skip to the end.",
     "B jumps straight to the result.": "Right-click jumps straight to the result.",
     "You won! Pick a card for a prize.\nMove left and right, then press A.":
         "You won! Pick a card for a prize.\nClick the card you like.",
-    "Press C to peek at a card first.": "Middle-click a card to peek at it first.",
+    "Press C to peek at a card first.": "Hover a card and press I to peek first.",
     "Pick up the Water card.\nMove onto it and press A.": "Pick up the Water card.\nClick it.",
     "Water is the blue card. Press A on it.": "Water is the blue card. Click it.",
     "Now carry it to the end. When you press\nA, the two cards swap seats.":
@@ -412,14 +412,15 @@ PC_TEXT: dict[str, str] = {
     "Press down to reach it. Pick it up\nwith A and drop it in the Spread.":
         "Click a card in the Box to pick it up,\nthen click a Spread slot to drop it.",
     "Down for the Box. A to pick up. Then up.": "Click the Box card, then a Spread slot.",
-    "Press C on the upside-down card!": "Middle-click the upside-down card!",
-    "Move to the upside-down card, then C.": "Middle-click the upside-down card (or C).",
+    "Press C on the upside-down card!": "Point at the upside-down card, press I!",
+    "Move to the upside-down card, then C.": "Hover the upside-down card, then press I.",
     "A is Do. B is Back. C is Info.\nPress C any time you wonder.":
-        "Left click is Do. Right click is Back.\nMiddle click (or C) is Info.",
+        "Click is Do. Right-click is Back.\nI is Info. Esc opens the Menu.",
     "Leaving? Press B, then A. No take-backs!": "Leaving? Right-click, then confirm. No undo!",
-    "Press C on it to read what it does.": "Middle-click it (or press C) to read it.",
+    "Press C on it to read what it does.": "Point at it and press I to read it.",
+    "C is Info. It never changes anything!": "I is Info. It never changes anything!",
     "Something is happening! Choose well.\nPress C if you want to know more.":
-        "Something is happening! Choose well.\nMiddle-click (or C) to know more.",
+        "Something is happening! Choose well.\nPress I (or middle-click) to know more.",
 }
 
 
@@ -452,6 +453,14 @@ HOW_TO_PLAY = Page("How to Play", [
     "Upside-down cards get +25% from Two-Tone.",
     "Win fights, pick cards, beat Chubbs by sunrise.",
 ])
+
+# The same page with the PC controls (app.pc): mouse first, keys second.
+HOW_TO_PLAY_PC = Page(HOW_TO_PLAY.title, HOW_TO_PLAY.rows[:6] + [
+    "Click  Do: pick up, put down, FIGHT",
+    "Right-click  Back: cancel, skip the battle",
+    "I (or middle-click)  Info: what is this?",
+    "Esc  Menu.  Enter = Click, Backspace = Back.",
+] + HOW_TO_PLAY.rows[10:])
 
 # ---------------------------------------------------------------------------------------------
 # NODE_TEXT - Night Path nodes (C on a node shows desc). Keyed by Node.kind.

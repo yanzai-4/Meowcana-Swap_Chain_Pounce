@@ -77,12 +77,13 @@ Needs Python 3 with `pygame-ce` and `Pillow` (the .bat installs them if they are
 
 | Input | Action |
 | --- | --- |
-| Mouse move / left click | hover moves the cursor / select (A); drag and drop cards on the Spread |
-| Right click / middle click | B (back) / C (info); the footer's A B C gems are clickable too |
-| Wheel | up / down |
-| Arrows or WASD, Z Enter Space, X Backspace, C Tab | stick, A, B, C |
-| Esc | pause Menu (same as holding B) |
-| F11, M, - / = | fullscreen, mute, volume |
+| Left click / Enter, Space | Confirm: select, pick up, drop (drag and drop works on the Spread), Fight |
+| Right click / Backspace | Back: cancel, close, skip a battle; on Path and Spread (footer says `Right-click Menu`) it opens the pause Menu |
+| I, Tab / middle click | Info (also click the `[I] Info` hint at the bottom) |
+| Esc, M | pause Menu; inside a dialogue, Info page or the Menu itself it acts like Back (never skips a battle) |
+| Mouse move, wheel / arrows, WASD | move the cursor |
+| Battle | click the speed hint, Space or F = 1x/2x/4x; right click or Backspace = Skip |
+| F11, N, - / = | fullscreen, mute, volume |
 
 Pointer and sound contract for scenes: [`docs/pc-version.md`](docs/pc-version.md). Sounds are synthesized by `pc/sfx/gen_sfx.py` into `pc/sfx/*.wav`.
 
