@@ -6,7 +6,7 @@ when nothing is cursed). A chooses, C explains the highlighted option. There is 
 nothing; after the choice a result line and a Continue button end the visit.
 """
 
-from nla import story
+from nla import sfx, story
 from nla.rules import cards
 from nla.rules import run as R
 from nla.ui import theme as T
@@ -14,7 +14,7 @@ from nla.ui import widgets as W
 from nla.ui.input import step
 
 from . import path_art
-from .path_common import CENTER_W, CENTER_X, NodeScene, Tile
+from .path_common import CENTER_W, CENTER_X, NodeScene, Tile, hit
 
 BED_XY = (140, 90)
 TILE_Y, TILE_W, TILE_H = 178, 144, 66
@@ -149,6 +149,27 @@ class CatBedScene(NodeScene):
             t.set(focused=(i == self.sel))
         self.set_hints([("A", ("Nap", "Sharpen", "Groom")[self.sel]), ("C", "Info")])
 
+    # ------------------------------------------------------------------ pointer
+    WHEEL = ("left", "right")
+
+    def click_anywhere(self):
+        return self.mode == "result"
+
+    def target_at(self, x, y):
+        if self._locked:
+            return None
+        for i, t in enumerate(self.tiles):
+            if hit(t.rect, x, y):
+                return i
+        return None
+
+    def current_target(self):
+        return self.sel
+
+    def hover(self, target):
+        self.sel = target
+        self._focus()
+
     # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.toast.update(dt)
@@ -195,6 +216,8 @@ class CatBedScene(NodeScene):
                 self.toast.show("Already at full HP. Pick another!")
                 return
             R.cat_bed(run, "nap")
+            sfx.play("nap")
+            sfx.play("heal")
             self._result(["Domino curls up and sleeps.", "Zzz... all rested."], "HP +%d" % gain, T.HEAL)
         elif i == 1:
             targets = self._sharpen_targets()
@@ -216,6 +239,7 @@ class CatBedScene(NodeScene):
         c = R.find_card(self.run, uid)[2]
         name = cards.card_title(c) if c else "The card"
         if R.cat_bed(self.run, "sharpen", uid) == "ok":
+            sfx.play("merge")
             self._result(["%s is sharper now." % name, "Claws out. One more Star."], "{*} %d" % (c.star + 1), T.ACCENT)
         else:
             self.toast.show("That card cannot get another Star.")
@@ -232,8 +256,10 @@ class CatBedScene(NodeScene):
             self.toast.show("Pick a cursed card.")
             return
         if was_curse:
+            sfx.play("heal")
             self._result(["%s is clean again." % name, "The Curse washed right off."], "Curse removed", T.HEAL)
         else:
+            sfx.play("flip")
             self._result(["%s is flipped for good." % name,
                           "Now %s." % ("Reversed" if c.reversed else "Upright")], "Flipped", T.ACCENT)
 

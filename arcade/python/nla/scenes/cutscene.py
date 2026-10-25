@@ -50,6 +50,7 @@ SETS = {
 class CutsceneScene(Scene):
     def __init__(self, services, key, done=None, lines=None, bg=None, cast=None, dim=None):
         super().__init__(done)
+        self.key = key
         self.svc = services
         self.lines = lines if lines is not None else story.SCENES[key]
         d_bg, d_dim, d_cast = SETS.get(key, (_ATTIC, False, _hero(_POINT)))

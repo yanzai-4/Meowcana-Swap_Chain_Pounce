@@ -13,6 +13,10 @@ API:
     app.card_info(card)                    full-screen Card Info for a rules Card (B or C closes)
     app.busy                               True during transitions, full redraws and while the scene says busy
     app.time                               seconds since start (idle twinkles etc.)
+    app.pointer(x, y, kind)                PC mouse (game coords): routed to footer gems / top overlay / scene, the input
+                                           it returns is injected into the next frame (docs/pc-version.md)
+    UI sounds (nla.sfx): move / confirm / back / info on input edges when the scene made no sound that frame,
+                         open / close for overlays, transition for the wipe
 
 Scene interface (subclass `Scene`; scenes never import each other, flow.py wires them with `done` callbacks):
 
@@ -32,10 +36,14 @@ then one blink of the cat-eye moon), then the new scene draws once with full=Tru
 """
 
 import engine
+from nla import sfx
 
 from . import theme as T
 from .input import Input
-from .widgets import Confirm, Dialogue, card_info
+from .widgets import Confirm, Dialogue, Footer, card_info
+
+_POINTER_INPUTS = ("a", "b", "c", "up", "down", "left", "right", "menu")
+_POINTER_DEFAULT = {"up": "a", "right": "b", "middle": "c", "wheel_up": "up", "wheel_down": "down"}
 
 COLUMN_W = 60
 COLUMN_ORDER = ((3, 4), (2, 5), (1, 6), (0, 7))     # center out, a pair per frame
@@ -113,6 +121,7 @@ class App:
             return
         if transition and self.stack:
             self._trans = {"step": 0, "apply": fn}
+            sfx.play("transition")
         else:
             self._apply(fn)
 
@@ -121,6 +130,7 @@ class App:
         self.overlays.clear()
         self.input.clear()
         self._need_full = True
+        Footer.active = None                 # the new scene's first full draw registers its own footer gems
 
     def _do_push(self, scene):
         self.stack.append(scene)
@@ -147,6 +157,7 @@ class App:
         overlay.attach(self)
         self.overlays.append((overlay, on_close))
         self.input.clear()
+        sfx.play("open")
 
     def say(self, lines, on_done=None):
         self.open(Dialogue(lines, on_done))
@@ -159,6 +170,15 @@ class App:
 
     # ------------------------------------------------------------------ Runner interface
     def update(self, controls, dt):
+        mark = sfx.count
+        self._update(controls, dt)
+        if sfx.count == mark and self._trans is None:       # nothing in this frame made a sound: UI defaults
+            inp = self.input
+            name = "confirm" if inp.a else "back" if inp.b else "info" if inp.c else "move" if inp.moved else None
+            if name:
+                sfx.play(name)
+
+    def _update(self, controls, dt):
         self.time += dt
         self.input.update(controls, dt)
         if self._trans is not None:
@@ -171,11 +191,37 @@ class App:
                 self.overlays.remove(entry)      # a close callback may already have opened another overlay
                 self._restore.append(overlay)
                 self.input.clear()
+                sfx.play("close")
                 if on_close:
                     on_close(overlay.result)
             return
         if self.stack:
             self.stack[-1].update(self.input, dt)
+
+    # ------------------------------------------------------------------ PC pointer (docs/pc-version.md)
+    pointer_gate = None             # callable(kind) -> bool set by the tutorial coach; False swallows the event
+
+    def pointer(self, x, y, kind):
+        """Mouse event in game coordinates; kind: move | down | up | right | middle | wheel_up | wheel_down.
+        Routed to the footer gems (clicks), else the top overlay, else the scene. The input it returns is injected
+        into the next Input frame like a button press. Returns that input name (or None). Never called on the board."""
+        if self._trans is not None:
+            return None
+        gate = self.pointer_gate
+        if gate is not None and not gate(kind):
+            return None
+        out = None
+        gem = Footer.active.hit(x, y) if kind == "up" and Footer.active is not None else None
+        if gem is not None:
+            out = "menu" if gem[1] == "Menu" else gem[0].lower()
+        else:
+            target = self.overlays[-1][0] if self.overlays else self.scene
+            fn = getattr(target, "pointer", None)
+            out = fn(x, y, kind) if fn is not None else _POINTER_DEFAULT.get(kind)
+        if out is not None and out in _POINTER_INPUTS:
+            self.input.inject(out)
+            return out
+        return None
 
     def draw(self, scr, full):
         self.busy = False

@@ -8,12 +8,13 @@
 B only moves the cursor to the button and A on the button ends the picker. C = Card Info. Dev harness: `dev_picker()`.
 """
 
+from nla import sfx
 from nla.rules import cards
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, slot_x, text_rows
+from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hover_allowed, inside, slot_at, slot_x, text_rows
 
 SHAKE_S = 0.25
 TITLE_Y = 18
@@ -96,6 +97,7 @@ class PickerScene(Scene):
                 self.sv.card_info(card)
             else:
                 self._shake_t = SHAKE_S
+                sfx.play("blocked")
 
     def _move(self, dx, dy):
         row, col = self.row, self.col
@@ -118,6 +120,33 @@ class PickerScene(Scene):
             self.finish(card.uid)
         else:
             self._shake_t = SHAKE_S
+            sfx.play("blocked")
+
+    # ------------------------------------------------------------------ pointer (mouse)
+    def _target(self, x, y):
+        if inside(x, y, T.SPREAD_FIGHT):
+            return (0, self.ns)
+        zi = slot_at(x, y, self.ns, self.nb)
+        if zi is None:
+            return None
+        return (0 if zi[0] == "s" else 1, zi[1])
+
+    def pointer(self, x, y, kind):
+        """Mouse: hover = cursor, left click = A, right = B, middle = C."""
+        if kind == "right":
+            return "b"
+        if kind not in ("move", "up", "middle"):
+            return None
+        tgt = self._target(x, y)
+        if tgt is not None and tgt != (self.row, self.col) and hover_allowed(self.app):
+            self.row, self.col = tgt
+            self._detail_key = None
+            sfx.play("move")
+        if kind == "move":
+            return None
+        if tgt is not None and tgt != (self.row, self.col):
+            return None                 # the tutorial gate kept the cursor where it was
+        return "c" if kind == "middle" else ("a" if tgt is not None else None)
 
     # ------------------------------------------------------------------ drawing
     def draw(self, scr, full):
@@ -165,7 +194,9 @@ class PickerScene(Scene):
         self._detail_key = key
         card = self._card()
         if self.row == 0 and self.col == self.ns:
-            self.detail.set(self.button_label, "", [[("Press A to leave without choosing.", T.TEXT)]])
+            self.detail.set(self.button_label, "", [[(
+                "Click to leave without choosing." if getattr(self.app, "pc", False)
+                else "Press A to leave without choosing.", T.TEXT)]])
         elif card is None:
             self.detail.set(None, "", [[("Empty slot", T.CAPTION)]])
         elif card.uid in self.selectable:

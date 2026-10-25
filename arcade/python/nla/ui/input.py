@@ -36,6 +36,10 @@ REPEAT_DELAY = 0.300  # seconds until the first repeat
 REPEAT_EVERY = 0.120  # seconds between repeats
 
 
+_INJECT = {"a": None, "b": None, "c": None, "menu": None,
+           "up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+
+
 class Input:
     def __init__(self):
         self.dx = self.dy = 0
@@ -45,6 +49,8 @@ class Input:
         self._dir = (0, 0)
         self._timer = 0.0
         self._mute = False
+        self._pending = []      # synthesized inputs waiting for the next update()
+        self.menu = False       # True for a frame when a "menu" input was injected (long-B equivalent)
 
     @property
     def moved(self):
@@ -60,8 +66,27 @@ class Input:
         self.a = self.b = self.c = False
         self._mute = True
 
+    def inject(self, name):
+        """Queue a synthesized input (pointer clicks on the PC) for the next update(): "a", "b", "c", "up", "down",
+        "left", "right" or "menu". It lands like a fresh button press / d-pad step (the tutorial gate still applies);
+        "menu" sets `self.menu` for that frame, the same request a long B hold makes."""
+        if name in _INJECT:
+            self._pending.append(name)
+
     def update(self, ctl, dt):
-        """Feed one frame of engine.Controls."""
+        """Feed one frame of engine.Controls (plus anything inject()ed since the last frame)."""
+        self._poll(ctl, dt)
+        self.menu = False
+        pending, self._pending = self._pending, []
+        for name in pending:
+            if name == "menu":
+                self.menu = True
+            elif name in "abc":
+                setattr(self, name, True)
+            else:
+                self.dx, self.dy = _INJECT[name]
+
+    def _poll(self, ctl, dt):
         self.raw = ctl
         held = ctl.held
         pressed = ctl.pressed

@@ -53,7 +53,11 @@ interacting with (the cursor) FIRST in your draw(): the first widget of a frame 
 
 import textwrap
 
+from nla import sfx
+
 from . import theme as T
+
+_CLICK = {"up": "a", "right": "b", "middle": "c"}
 
 
 
@@ -774,7 +778,10 @@ _BTN = {"A": 0, "B": 1, "C": 2}
 
 
 class Footer:
-    """Bottom rule + status on the left + A/B/C hints on the right. Left and hints repaint independently."""
+    """Bottom rule + status on the left + A/B/C hints on the right. Left and hints repaint independently.
+    The most recently painted footer is `Footer.active`; the App turns clicks on its gems into A/B/C inputs."""
+
+    active = None
 
     def __init__(self, left=None, hints=None, gap=10, y=T.FOOTER_Y, h=T.FOOTER_H, bg=T.GROUND, divider_line=True):
         self.left = list(left or [])
@@ -784,6 +791,7 @@ class Footer:
         self._hints_drawn = None
         self._left_end = T.INNER_L
         self._hints_x = T.INNER_R + 1
+        self._gems = []
 
     def set_left(self, items):
         self.left = list(items)
@@ -864,12 +872,22 @@ class Footer:
         clear_x = min(x0, self._hints_x)
         scr.fill_rect(clear_x, self.y, T.INNER_R + 1 - clear_x, self.h, self.bg)
         x = x0
+        self._gems = []
         for (letter, label), w in zip(self.hints, widths):
             scr.blit(_a("ui_btn"), _BTN[letter], x, self.y + (self.h - 13) // 2, bg=self.bg)
             scr.text(x + 16, ty, label, T.TEXT, self.bg)
+            self._gems.append((letter, label, (x - 2, self.y, w + 4, self.h)))
             x += w + self.gap
         self._hints_x = x0
         self._hints_drawn = list(self.hints)
+        Footer.active = self
+
+    def hit(self, x, y):
+        """(letter, label) of the gem + label under game point (x, y), or None (PC pointer)."""
+        for letter, label, (rx, ry, rw, rh) in self._gems:
+            if rx <= x < rx + rw and ry <= y < ry + rh:
+                return letter, label
+        return None
 
 
 # --------------------------------------------------------------------------- Toast
@@ -886,6 +904,15 @@ class Toast:
 
     def show(self, msg, seconds=1.5, color=T.ACCENT):
         self.msg, self.color, self._left = msg, color, seconds
+
+    def pointer(self, x, y, kind):
+        """PC pointer: True when a click landed on the plate (it is dismissed). Scenes that own a Toast may call it."""
+        if kind == "up" and self._drawn is not None and self._left > 0:
+            rx, ry, rw, rh = self._drawn[2]
+            if rx <= x < rx + rw and ry <= y < ry + rh:
+                self._left = 0
+                return True
+        return False
 
     def hide(self):
         self._left = 0
@@ -1027,6 +1054,10 @@ class Overlay:
         self.result = None
         self._app = None
 
+    def pointer(self, x, y, kind):
+        """PC pointer: a click anywhere is the matching button (left = A, right = B, middle = C)."""
+        return _CLICK.get(kind)
+
     def attach(self, app):
         self._app = app
 
@@ -1080,6 +1111,7 @@ class Dialogue(Overlay):
         self._has_portrait = False
         self._blink_on = None
         self._rx = self._name_x = 0   # x where the text rows / the speaker name were painted
+        self._blip_page, self._blip_at = None, 0
         self.busy = True
 
     @property
@@ -1092,6 +1124,7 @@ class Dialogue(Overlay):
 
     def update(self, ctl, dt):
         self._clock += dt
+        self._blip()
         if ctl.b:
             self.close()
             if self.on_done:
@@ -1112,6 +1145,16 @@ class Dialogue(Overlay):
                 self.close()
                 if self.on_done:
                     self.on_done()
+
+    def _blip(self):
+        """Typewriter tick: one soft `type` sound per four revealed letters (never on a space)."""
+        if self._blip_page != self.i:
+            self._blip_page, self._blip_at = self.i, 0
+        n = min(len(self.text), int(self.shown))
+        if n - self._blip_at >= 4:
+            self._blip_at = n
+            if not self.text[n - 1].isspace():
+                sfx.play("type")
 
     def _text_x(self, key):
         return self.rect[0] + (68 if key else 14)
@@ -1226,6 +1269,15 @@ class Confirm(Overlay):
         self._text_done = False
         self.busy = True
 
+    def pointer(self, x, y, kind):
+        """Hover focuses the Yes/No button under the pointer; a click on one confirms it, outside does nothing."""
+        for focus, btn in ((0, self.no_btn), (1, self.yes_btn)):
+            if btn.x <= x < btn.x + btn.w and btn.y <= y < btn.y + btn.h:
+                if kind in ("move", "down", "up"):
+                    self.focus = focus
+                return "a" if kind == "up" else None
+        return "b" if kind == "right" else None
+
     def update(self, ctl, dt):
         if ctl.dx:
             self.focus = 1 - self.focus
@@ -1284,6 +1336,11 @@ class InfoOverlay(Overlay):
         self.title, self.subtitle, self.body = title, subtitle, list(body)
         self.card, self.notes, self.side = card, list(notes), list(side)
         self._built = False
+
+    def pointer(self, x, y, kind):
+        if kind in ("up", "right", "middle"):
+            return "b"                     # any click closes the page
+        return None
 
     def update(self, ctl, dt):
         if ctl.b or ctl.c:

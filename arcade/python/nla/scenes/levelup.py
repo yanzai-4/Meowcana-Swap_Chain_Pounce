@@ -6,13 +6,14 @@ picker returns here with nothing spent. There is nothing to back out of, so B do
 the next set of options follows after a short confirmation.
 """
 
+from nla import sfx
 from nla.rules import cards
 from nla.rules import run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.input import step
 
-from .path_common import CENTER_W, CENTER_X, NodeScene, Tile, wrap
+from .path_common import CENTER_W, CENTER_X, NodeScene, Tile, hit, wrap
 
 TILE_Y, TILE_W, TILE_H = 82, 140, 150
 TILE_X = (16, 170, 324)
@@ -121,6 +122,24 @@ class LevelUpScene(NodeScene):
             t.set(focused=(i == self.sel))
         self.set_hints([("A", "Take"), ("C", "Info")])
 
+    # ------------------------------------------------------------------ pointer
+    WHEEL = ("left", "right")
+
+    def target_at(self, x, y):
+        if self._locked or self._end is not None:
+            return None
+        for i in range(len(self.options)):
+            if hit(self.tiles[i].rect, x, y):
+                return i
+        return None
+
+    def current_target(self):
+        return self.sel
+
+    def hover(self, target):
+        self.sel = target
+        self._focus()
+
     # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.toast.update(dt)
@@ -168,6 +187,7 @@ class LevelUpScene(NodeScene):
         if R.apply_level_up(run, key, uid) != "ok":
             self.toast.show("That did not work. Pick another prize.")
             return
+        sfx.play("levelup")
         self.result.set(line, T.HEAL)
         self.refresh_status()
         self.set_hints([])

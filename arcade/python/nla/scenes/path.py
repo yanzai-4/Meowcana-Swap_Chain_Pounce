@@ -12,11 +12,12 @@ where you have been. `rules.run.finish_node` and the save are Flow's job after t
 
 import math
 
+from nla import sfx
 from nla.rules import run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 
-from .path_common import NodeScene, inside, node_text
+from .path_common import NodeScene, hit, inside, node_text
 from .path_info import NodeInfo
 
 SOCKET_X = [44 + 62 * i for i in range(6)]
@@ -224,6 +225,24 @@ class PathScene(NodeScene):
     def _info(self):
         self.sv.app.open(NodeInfo(self.options[self.sel]))
 
+    # ------------------------------------------------------------------ pointer
+    HOVER_SFX = "node"
+    NODE_HIT = (-16, -16, 32, 32)       # around each lit node icon (the icons are 20x20)
+
+    def target_at(self, x, y):
+        if self._hop is not None or self._locked:
+            return None
+        for i, (cx, cy) in enumerate(self.pos):
+            if hit((cx + self.NODE_HIT[0], cy + self.NODE_HIT[1], self.NODE_HIT[2], self.NODE_HIT[3]), x, y):
+                return i
+        return None
+
+    def current_target(self):
+        return self.sel
+
+    def hover(self, target):
+        self._select(target)
+
     # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.toast.update(dt)
@@ -234,6 +253,7 @@ class PathScene(NodeScene):
             return
         if (ctl.dx or ctl.dy) and len(self.options) > 1:
             self._select((self.sel + (ctl.dx or ctl.dy)) % len(self.options))
+            sfx.play("node")
         elif ctl.a:
             self._start_hop()
         elif ctl.b:
@@ -243,6 +263,7 @@ class PathScene(NodeScene):
 
     def _start_hop(self):
         self.cursor.hide()
+        sfx.play("hop")
         self._hop = {"t": 0.0, "from": token_home(self.step), "to": self.pos[self.sel], "hold": 0.0}
 
     def _advance_hop(self, dt):

@@ -7,6 +7,7 @@ done("start") | done("title"). `dying=True` plays the newest dark bell going out
 counted from the left; the bell that just went dark is index profile.bells.
 """
 
+from nla import sfx
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
@@ -37,6 +38,7 @@ class ParlorScene(Scene):
         self._said = not (dying and lines)
         self._candle = None
         self._bell_state = None
+        self._belled = False
 
     def _focus(self):
         for i, b in enumerate(self.buttons):
@@ -50,6 +52,9 @@ class ParlorScene(Scene):
     def update(self, ctl, dt):
         self.clock += dt
         if not self.ready:
+            if not self._belled and self.clock >= FLICKER_STEP:
+                self._belled = True
+                sfx.play("bell")                          # the newest bell goes dark
             if self.clock >= FLICKER_STEP * len(FLICKER) + 0.4:
                 self.ready = True
                 if self.lines and not self._said:
@@ -67,6 +72,27 @@ class ParlorScene(Scene):
             self.app.open(W.InfoOverlay("Nine Bells", "%d still lit" % self.lit,
                                         ["Every night that ends in a nap dims", "one bell.", "",
                                          "The Parlor is always open.", "Start Night begins a new one."]))
+
+    def pointer(self, x, y, kind):
+        """Hover/click the two plates; clicking the Nine Bells rail shows the bells info (like C); right = B."""
+        if not self.ready:
+            return None
+        if kind == "right":
+            return "b"
+        if kind in ("wheel_up", "wheel_down"):
+            return "up" if kind == "wheel_up" else "down"
+        bx0, by0 = BELLS[0]
+        if bx0 <= x < BELLS[-1][0] + 14 and by0 <= y < by0 + 16:
+            return "c" if kind in ("up", "middle") else None
+        for i, b in enumerate(self.buttons):
+            if b.x <= x < b.x + b.w and b.y <= y < b.y + b.h:
+                if kind in ("move", "up", "middle") and self.sel != i:
+                    self.sel = i
+                    self._focus()
+                if kind == "up":
+                    return "a"
+                return "c" if kind == "middle" else None
+        return None
 
     # ------------------------------------------------------------------ drawing
     def draw(self, scr, full):

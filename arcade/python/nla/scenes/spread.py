@@ -14,13 +14,13 @@ reversed_card`. Dev harnesses: `dev_spread()` and `dev_spread_boss()` (python to
 nla.scenes.spread:dev_spread).
 """
 
-from nla import story
+from nla import sfx, story
 from nla.rules import cards, enemies as E, readings, run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hit, slot_x, text_rows, SLOT_Y
+from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hover_allowed, inside, slot_at, slot_x, text_rows, SLOT_Y, hit
 
 ROW_ENEMY, ROW_SPREAD, ROW_BOX = 0, 1, 2
 ENEMY_Y = T.ENEMY_SCRAP_Y
@@ -90,6 +90,9 @@ class SpreadScene(Scene):
         self._shake_t = 0.0
         self._info_open = False
         self._booted = False
+        self._down = False            # pointer: left button is held
+        self._press_picked = False    # ...and its press picked a card up
+        self._dragged = False         # ...and the pointer has left the origin slot since
         self._later = None
         self._step_id = None
         self._merge_view = None
@@ -150,6 +153,7 @@ class SpreadScene(Scene):
 
     def _shake(self, text=None):
         self._shake_t = SHAKE_S
+        sfx.play("blocked")
         if text:
             self._note_text(text)
 
@@ -301,6 +305,88 @@ class SpreadScene(Scene):
                 self._recompute()
             self._detail_key = None
 
+    # ------------------------------------------------------------------ pointer (mouse)
+    def _target(self, x, y):
+        """(row, col) of the item under the pointer, else None. Rects are the drawn ones."""
+        if inside(x, y, T.SPREAD_FIGHT):
+            return (ROW_SPREAD, self.ns)
+        zi = slot_at(x, y, self.ns, self.nb)
+        if zi is not None:
+            return (ROW_SPREAD if zi[0] == "s" else ROW_BOX, zi[1])
+        if inside(x, y, T.ENEMY_PORTRAIT):
+            return (ROW_ENEMY, 0)
+        for i, v in enumerate(self.scrap_views):
+            if inside(x, y, (v.x, v.y, v.w, v.h)):
+                return (ROW_ENEMY, i + 1)
+        return None
+
+    def _hover(self, tgt):
+        """Put the cursor on tgt (while holding a card only on card slots). True when it moved."""
+        if tgt is None or tgt == (self.row, self.col):
+            return False
+        holding = self.held is not None
+        if holding and (tgt[0] == ROW_ENEMY or (tgt[0] == ROW_SPREAD and tgt[1] == self.ns)):
+            return False
+        self.row, self.col = tgt
+        if holding:
+            self._recompute()
+        self._detail_key = None
+        sfx.play("move")
+        return True
+
+    def pointer(self, x, y, kind):
+        """Mouse: hover = cursor, click = A (also drag and drop), right = B, middle = C."""
+        if kind == "right":
+            return "b"
+        if kind == "middle":
+            if hover_allowed(self.app):
+                self._hover(self._target(x, y))
+            return "c"
+        if kind not in ("move", "down", "up"):
+            return None
+        tgt = self._target(x, y)
+        free = hover_allowed(self.app)
+        if kind == "move":
+            if free:
+                self._hover(tgt)
+                if self._down and self.held is not None and (self.row, self.col) != self._cell(self.origin):
+                    self._dragged = True
+            return None
+        if kind == "down":
+            self._down, self._press_picked, self._dragged = True, False, False
+            if tgt is None or self.held is not None or tgt[0] == ROW_ENEMY or tgt[1] == self.ns and tgt[0] == ROW_SPREAD:
+                return None
+            if not free and tgt != (self.row, self.col):
+                return None
+            zi = ("s" if tgt[0] == ROW_SPREAD else "b", tgt[1])
+            if self._cards(zi[0])[zi[1]] is None:
+                return None
+            self._hover(tgt)
+            self._press_picked = True
+            return "a"
+        # up
+        was_picked, dragged = self._press_picked, self._dragged
+        self._down = self._press_picked = self._dragged = False
+        if tgt is None:
+            return "b" if dragged and self.held is not None else None
+        if not free and tgt != (self.row, self.col):
+            return None
+        if self.held is not None:
+            if tgt[0] == ROW_ENEMY or (tgt[0] == ROW_SPREAD and tgt[1] == self.ns):
+                return "b" if dragged else None
+            if tgt == self._cell(self.origin):
+                return None if (was_picked and not dragged) else "b"
+            self._hover(tgt)
+            return "a"
+        if was_picked:
+            return None
+        self._hover(tgt)
+        return "c" if tgt[0] == ROW_ENEMY else "a"
+
+    @staticmethod
+    def _cell(zi):
+        return (ROW_SPREAD if zi[0] == "s" else ROW_BOX, zi[1])
+
     # ------------------------------------------------------------------ buttons
     def _press_a(self):
         run = self.run
@@ -320,6 +406,7 @@ class SpreadScene(Scene):
             self._shake()
             return
         self.held, self.origin = card, zi
+        sfx.play("pickup")
         if zi[0] == "s":
             self.sv.report("pick_up:slot%d" % (zi[1] + 1))
         self._recompute()
@@ -330,6 +417,7 @@ class SpreadScene(Scene):
             return
         self.row, self.col = (ROW_SPREAD if self.origin[0] == "s" else ROW_BOX), self.origin[1]
         self.held = self.origin = None
+        sfx.play("drop")
         self._recompute()
 
     def _press_c(self):
@@ -352,7 +440,8 @@ class SpreadScene(Scene):
             return
         card = self._cards(zi[0])[zi[1]]
         if card is None:
-            self._note_text("An empty slot. Pick up a card, then press A here.")
+            self._note_text("An empty slot. Pick up a card, then %s here." % (
+                "click" if getattr(self.app, "pc", False) else "press A"))
             self._detail_key = None
         else:
             self._open_card_info(card)
@@ -386,7 +475,9 @@ class SpreadScene(Scene):
         run.spread[:] = sp
         run.box[:] = bx
         origin_zone = self.origin[0]
+        swapped = (sp if self.origin[0] == "s" else bx)[self.origin[1]] is not None
         self.held = self.origin = None
+        sfx.play("swap" if swapped else "drop")
         if zi[0] == "s":
             self.sv.report("drop:slot%d" % (zi[1] + 1))
             if origin_zone == "b":
@@ -403,6 +494,7 @@ class SpreadScene(Scene):
             if R.merge(self.run, held, target.uid) is None:
                 return
             self.held = self.origin = None
+            sfx.play("merge")
             view = (self.board.slots if zi[0] == "s" else self.board.box)[zi[1]]
             view.flash, self._merge_view, self._merge_t = True, view, 0.25
             self._recompute()
@@ -644,7 +736,8 @@ class SpreadScene(Scene):
             return cards.enemy_card_title(c), tag, text_rows(cards.enemy_card_text(c))
         if row == ROW_SPREAD and col == self.ns:
             if any(c is not None for c in self.run.spread):
-                return None, "", [[("Press A to fight", T.TEXT)]]
+                return None, "", [[("Click FIGHT to fight" if getattr(self.app, "pc", False) else "Press A to fight",
+                                    T.TEXT)]]
             return None, "", [[("Put a card in your Spread first.", T.TEXT)]]
         sp, bx, _ = self._arrange()
         zone = "s" if row == ROW_SPREAD else "b"

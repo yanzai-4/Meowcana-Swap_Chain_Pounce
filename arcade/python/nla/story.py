@@ -388,6 +388,55 @@ TUTORIAL: list[Step] = [
     ], "press_a"),
 ]
 
+# PC wording: on the PC build (app.pc) any line below whose board text matches exactly is shown with the mouse
+# wording instead. The board text above never changes. Same limits as every line: <= 46 chars, <= 2 lines.
+PC_TEXT: dict[str, str] = {
+    "Oh! Before we start, press A to say hi.\nA is your Do button.":
+        "Oh! Before we start, click to say hi.\nLeft click is your Do button (A).",
+    "Press C to peek at it. Press C to close.":
+        "Press C (or middle-click) to peek at it.\nPress C again to close.",
+    "Ready? Press A on FIGHT!": "Ready? Click FIGHT!",
+    "Move to FIGHT and press A. Go go go!": "Click FIGHT! Go go go!",
+    "Too slow? Press A to go faster!": "Too slow? Click to go faster!",
+    "Press A. It makes the battle zoom.": "Click! It makes the battle zoom.",
+    "Press B to skip to the end.": "Right-click (or press B) to skip to the end.",
+    "B jumps straight to the result.": "Right-click jumps straight to the result.",
+    "You won! Pick a card for a prize.\nMove left and right, then press A.":
+        "You won! Pick a card for a prize.\nClick the card you like.",
+    "Press C to peek at a card first.": "Middle-click a card to peek at it first.",
+    "Pick up the Water card.\nMove onto it and press A.": "Pick up the Water card.\nClick it.",
+    "Water is the blue card. Press A on it.": "Water is the blue card. Click it.",
+    "Now carry it to the end. When you press\nA, the two cards swap seats.":
+        "Now carry it to the end. When you click\nthere, the two cards swap seats.",
+    "Move right to the last Slot, then A.": "Move right to the last Slot and click it.",
+    "Press down to reach it. Pick it up\nwith A and drop it in the Spread.":
+        "Click a card in the Box to pick it up,\nthen click a Spread slot to drop it.",
+    "Down for the Box. A to pick up. Then up.": "Click the Box card, then a Spread slot.",
+    "Press C on the upside-down card!": "Middle-click the upside-down card!",
+    "Move to the upside-down card, then C.": "Middle-click the upside-down card (or C).",
+    "A is Do. B is Back. C is Info.\nPress C any time you wonder.":
+        "Left click is Do. Right click is Back.\nMiddle click (or C) is Info.",
+    "Leaving? Press B, then A. No take-backs!": "Leaving? Right-click, then confirm. No undo!",
+    "Press C on it to read what it does.": "Middle-click it (or press C) to read it.",
+    "Something is happening! Choose well.\nPress C if you want to know more.":
+        "Something is happening! Choose well.\nMiddle-click (or C) to know more.",
+}
+
+
+def pc_lines(lines):
+    """`lines` with the PC mouse wording swapped in where PC_TEXT has a variant (Line or str entries)."""
+    out = []
+    for line in lines:
+        text = line if isinstance(line, str) else line.text
+        pc = PC_TEXT.get(text)
+        if pc is None:
+            out.append(line)
+        elif isinstance(line, str):
+            out.append(pc)
+        else:
+            out.append(Line(line.speaker, pc, line.portrait, line.mood))
+    return out
+
 # Shown on the one-screen recap (Skip Tutorial path, reopen with C on the draft screens).
 HOW_TO_PLAY = Page("How to Play", [
     "SWAP: arrange your cards. Left to right!",

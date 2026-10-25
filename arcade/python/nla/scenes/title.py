@@ -113,6 +113,31 @@ class TitleScene(Scene):
             else:
                 self.finish(key)
 
+    def _hit(self, x, y):
+        for i, b in enumerate(self.buttons[:len(self.items)]):
+            if b.x <= x < b.x + b.w and b.y <= y < b.y + b.h:
+                return i
+        return None
+
+    def pointer(self, x, y, kind):
+        """Hover puts the cursor on the plate under the mouse, a click on a plate does it, right = B, middle = C."""
+        if self.mode == "records":
+            return "a" if kind in ("up", "right") else None
+        if kind == "right":
+            return "b"
+        if kind in ("wheel_up", "wheel_down"):
+            return "up" if kind == "wheel_up" else "down"
+        i = self._hit(x, y)
+        if i is None:
+            return None
+        if kind in ("move", "up", "middle"):
+            self.sel = i
+        if kind == "up":
+            return "a"
+        if kind == "middle":
+            return "c"
+        return None
+
     # ------------------------------------------------------------------ drawing
     def draw(self, scr, full):
         if full:

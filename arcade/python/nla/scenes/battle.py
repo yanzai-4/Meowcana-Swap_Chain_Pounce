@@ -20,7 +20,7 @@ Reported to services: battle_speed (A), battle_skip (B), battle_done (Result vis
 
 import random
 
-from nla import story
+from nla import sfx, story
 from nla.rules import cards
 from nla.ui import theme as T
 from nla.ui import widgets as W
@@ -127,10 +127,12 @@ class BattleScene(Scene):
         self._hit_n = 0
         self._active_slot = [None, None]
         self.panel_wait = 0
+        self._sfx_n = 0               # sounds started this frame (battle never stacks more than 3)
 
     # ------------------------------------------------------------------ plumbing
     def enter(self, app):
         super().enter(app)
+        sfx.music("music_boss" if self.boss else "music_attic")
 
     @property
     def busy(self):
@@ -154,9 +156,38 @@ class BattleScene(Scene):
     def region(self, key):
         return self.hud.region(key, engine.measure)
 
+    # ------------------------------------------------------------------ sound
+    def _snd(self, name, minor=False):
+        """Battle sound: minor ones are dropped at 4x, nothing plays after B (skip), at most 3 start per frame."""
+        if self.skipped or (minor and self.fast) or self._sfx_n >= 3:
+            return
+        self._sfx_n += 1
+        sfx.play(name)
+
+    def _play_sound(self, side, slot):
+        card = self.hand_cards[slot] if side == 0 and 0 <= slot < len(self.hand_cards) else None
+        if card is None or card.def_id == cards.DROPPINGS:
+            return "play_scrap"
+        if card.def_id >= 40:
+            return "play_major"
+        return ("play_fire", "play_air", "play_water", "play_earth")[card.def_id // 10]
+
+    # ------------------------------------------------------------------ pointer
+    def pointer(self, x, y, kind):
+        """Footer gems (A speed, B skip, C info) are handled by the footer. Right click = B while the battle can be
+        skipped (or to leave the Result), middle = C, a left click elsewhere does nothing (the Result takes A)."""
+        if kind == "right":
+            return "b" if self.phase == "result" or not (self.paused or self.blocked) else None
+        if kind == "middle":
+            return "c"
+        if kind == "up" and self.phase == "result":
+            return "a"
+        return None
+
     # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.clock += dt
+        self._sfx_n = 0
         if self.phase == "result":
             self._update_result(ctl, dt)
             return
@@ -474,6 +505,7 @@ class BattleScene(Scene):
         elif 0 < ev.repeat < 8:
             text = "Again: " + ev.label
         self.play_label = ev.label
+        self._snd(self._play_sound(side, slot), minor=True)
         self.hud.set_line("%s %s" % (text, ev.value) if ev.value else text, T.TEXT)
         if not self.fast:
             self._label(side, ev.label if ev.repeat in (0, 9) else text, T.MUTED)
@@ -518,6 +550,9 @@ class BattleScene(Scene):
         text = ev.label if not ev.value else "%s %s" % (ev.label, _signed(ev.value))
         self.chain.append(text)
         tier = max(0, min(4, ev.tier))
+        self._snd("chain_%d" % (tier + 1), minor=tier < 3)
+        if ev.label == "Hiss":
+            self._snd("hiss", minor=True)
         if self.speed == 1:                  # the popup takes a few frames to build: only worth it at 1x
             prior = self._fit(self.chain[:-1], self.popup.rect[2] - 24, True)
             self.popup.show(tier, prior if prior else self.play_label, ev.label + "!", ev.tier)
@@ -542,6 +577,7 @@ class BattleScene(Scene):
         meow = T.asset("fx_meow")
         mx = min(max(2, x - meow.w // 2), T.SCREEN_W - meow.w - 2)
         self._spawn(S.StillObj("fx_meow", mx, max(top - 36, 96), 16, ((0, 0), (2, 1))))
+        self._snd("meow" if ev.side == 0 else "squeak")
         self.crit_pending = True
         yield BASE["crit"]
 
@@ -560,6 +596,10 @@ class BattleScene(Scene):
         a.play(S.SEQ_ATTACK_DOMINO if atk == 0 else S.SEQ_ATTACK_FOE)
         yield lead
         big = ev.value >= 30 or ev.crit
+        if ev.value > 0:
+            self._snd("crit" if ev.crit else "hit_big" if big else "hit")
+        elif ev.absorbed > 0:
+            self._snd("curl", minor=True)
         if ev.value > 0:
             self._slash(tgt)
             t.start_hurt(self.fast)
@@ -588,18 +628,21 @@ class BattleScene(Scene):
         a.start_hurt(True)
         x, top = a.top_center
         if ev.label == "Singe":
+            self._snd("singe")
             if not self.fast:
                 for k in range(3):
                     self._spawn(S.AnimObj("fx_part", (0, 1, 2), x - 14 + k * 10, top + 28 - (k % 2) * 6, hold=2,
                                           dy=-1.5), delay=k)
             self._number(side, ev.value, T.SINGE, T.AMBER0, prefix="-")
         else:
+            self._snd("hit", minor=True)
             self._label(side, ev.label, T.MUTED, dy=-6)
             self._number(side, ev.value, T.RED, T.NIGHT0, prefix="-")
         yield BASE["damage"]
 
     def _on_burnout(self, i, ev):
         self._apply(ev)
+        self._snd("burnout")
         side = ev.side
         self.hud.hurt_bar(side)
         self._actor(side).start_hurt(True)
@@ -612,6 +655,7 @@ class BattleScene(Scene):
         side = ev.side
         a = self._actor(side)
         self._apply(ev)
+        self._snd("heal")
         x, top = a.top_center
         if not self.fast:
             for k in range(3):
@@ -623,6 +667,8 @@ class BattleScene(Scene):
         side = ev.side
         a = self._actor(side)
         self._apply(ev)
+        if ev.value > 0:
+            self._snd("curl", minor=True)
         x, y = a.center()
         if ev.value > 0:
             self._spawn(S.AnimObj("fx_curl", (0, 1, 2, 1, 2), x - 8, y - 8, hold=2))
@@ -637,6 +683,7 @@ class BattleScene(Scene):
         if ev.label == "fleas":
             self.hud.row(side)[ev.slot].flash(3) if 0 <= ev.slot < len(self.hud.row(side)) else None
             self._label(side, "Fleas!", T.HEAL)
+            self._snd("squeak", minor=True)
             yield BASE["status"]
             return
         names = {"singe": "Singe", "puff": "Puff", "drowsy": "Drowsy", "leap": "Leap"}
@@ -649,6 +696,9 @@ class BattleScene(Scene):
 
     def _on_flip(self, i, ev):
         row = self.hud.row(ev.side)
+        if ev.side == 0:
+            self._snd("bite", minor=True)
+        self._snd("flip", minor=True)
         if 0 <= ev.slot < len(row):
             if ev.side == 0 and ev.slot < len(self.hand_cards) and self.hand_cards[ev.slot] is not None:
                 self.hand_cards[ev.slot].reversed = bool(ev.value)
@@ -676,11 +726,13 @@ class BattleScene(Scene):
         self._label(0, ev.label, T.MUTED, dy=40, dxo=x0 + 8 - T.BATTLE_HERO_X)
         self._spawn(S.FlyCard(field, x0, 200, mx - 6, my - 8, 10))
         yield 0.28
+        self._snd("bite")
         self.foe.play(S.SEQ_ATTACK_FOE)
         yield 0.2
         if not self.fast:
             for k in range(3):
                 self._spawn(S.SparkObj(mx - 6 + 4 * k, my, (k - 1) * 0.8, -1.5, MAJOR_SPARKS[k], 6), delay=k)
+        self._snd("eat")
         self.foe.play(S.SEQ_ATTACK_FOE)
         yield 0.45
 
@@ -691,6 +743,7 @@ class BattleScene(Scene):
         a.play(S.SEQ_ATTACK_DOMINO if attacker == 0 else S.SEQ_ATTACK_FOE)
         yield CONTACT_LEAD
         self._actor(defender).hop()
+        self._snd("miss")
         self._label(defender, "Miss", T.SILVER2)
         self._apply(ev)
         yield BASE["leap_block"] - CONTACT_LEAD
@@ -698,6 +751,7 @@ class BattleScene(Scene):
     def _on_phase(self, i, ev):
         self._clear_chain()
         self._apply(ev)
+        self._snd("roar")
         self.shake_left = 8
         self.foe.start_hurt(False)
         x, top = self.foe.top_center
@@ -707,12 +761,14 @@ class BattleScene(Scene):
     def _on_add_card(self, i, ev):
         self._apply(ev)
         if ev.side == 0:
+            self._snd("deal", minor=True)
             self.hud.hand[ev.slot].flash(3)
             self._label(0, ev.label, T.CURSE, dy=-4)
         yield BASE["add_card"]
 
     def _on_charm(self, i, ev):
         self._apply(ev)
+        self._snd("heal" if ev.label == "Nine Lives" else "bell", minor=True)
         sv_row = self.hud.hand
         if 0 <= ev.slot < len(sv_row):
             sv_row[ev.slot].flash(2)
@@ -725,6 +781,7 @@ class BattleScene(Scene):
 
     def _on_steal(self, i, ev):
         self._apply(ev)
+        self._snd("sell", minor=True)
         x, top = self.hero.top_center
         self._spawn(S.AnimObj("ui_treat", (0,), x + 10, max(top - 26, 96), hold=16, dy=-0.5))
         self._label(0, "-%d" % ev.value, T.ACCENT, dy=-6, dxo=-6)
@@ -738,6 +795,7 @@ class BattleScene(Scene):
         loser = self._actor(ev.side)
         winner = self._actor(1 - ev.side)
         loser.start_ko()
+        self._snd("ko")
         yield 0.3
         if ev.side == 1:
             self.hero.play(VICTORY, then_hold="v3")
@@ -800,6 +858,8 @@ class BattleScene(Scene):
         self.panel_wait = 3
         res = self.res
         won = bool(res.won)
+        sfx.music(None)
+        sfx.play("victory" if won else "defeat")
         rng = random.Random(len(self.events) * 31 + res.hp_left)
         if won:
             if self.boss:

@@ -9,14 +9,14 @@ Reward flow (nla.scenes.reward.place_card).
 
 import random
 
-from nla import story
+from nla import sfx, story
 from nla.rules import cards
 from nla.rules import run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.input import Nav
 
-from .path_common import NodeScene, Sprite, Tile, detail_lines, place_card, wrap
+from .path_common import NodeScene, Sprite, Tile, detail_lines, hit, place_card, wrap
 
 CARD_X0, CARD_PITCH, CARD_Y = 28, 78, 62
 PRICE_Y = 146
@@ -80,6 +80,7 @@ class StallScene(NodeScene):
         self.nav = Nav([4, 5], xs=[[CARD_X0 + CARD_PITCH * i + 24 for i in range(4)],
                                    [16 + (TILE_W + TILE_GAP) * i + TILE_W // 2 for i in range(5)]], row=1, col=0)
         self._leaving = None
+        self._belled = False
         self._tile_rows = {}
         self._tile_flash = None
         self._desc_due = 0
@@ -227,9 +228,32 @@ class StallScene(NodeScene):
     def _leave_info(self):
         return "Leave", "Back to the Night Path. You cannot come back to this stall."
 
+    # ------------------------------------------------------------------ pointer
+    def target_at(self, x, y):
+        if self._leaving is not None or self._locked:
+            return None
+        for i, v in enumerate(self.views):
+            if hit((v.x - 6, CARD_Y - 2, 60, PRICE_Y + 15 - CARD_Y + 2), x, y):      # the card and its price tag
+                return ("card", i)
+        for i, t in enumerate(self.tiles):
+            if hit(t.rect, x, y):
+                return ("tile", i)
+        return None
+
+    def current_target(self):
+        return self._item()
+
+    def hover(self, target):
+        kind, i = target
+        self.nav.jump(0 if kind == "card" else 1, i)
+        self._focus()
+
     # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.toast.update(dt)
+        if not self._belled:
+            self._belled = True
+            sfx.play("bell")            # the shop door
         if self._tile_flash is not None and self.sv.app.time >= self._tile_flash[1]:
             i, self._tile_flash = self._tile_flash[0], None
             name, sub, dim = self._tile_rows[i]
@@ -272,6 +296,7 @@ class StallScene(NodeScene):
         self.sv.app.open(W.InfoOverlay(name, sub, wrap(text, 56)))
 
     def _poor(self, price_tag=None):
+        sfx.play("blocked")
         self.say_line("broke", T.CURSE)
         if price_tag is not None:
             price_tag.flash()
@@ -289,6 +314,7 @@ class StallScene(NodeScene):
             if run.hp >= run.max_hp:
                 self.message("HP is already full. Save the tuna!")
             elif R.buy(run, st.tuna) == "ok":
+                sfx.play("buy")
                 self.say_line("tuna")
                 self.message("Tuna! HP %d/%d" % (run.hp, run.max_hp), T.HEAL)
                 self._refresh()
@@ -299,6 +325,7 @@ class StallScene(NodeScene):
                 self._poor()
             else:
                 R.reroll(run)
+                sfx.play("coin")
                 self.stock = run.stall
                 self.say_line("reroll")
                 self._refresh()
@@ -319,6 +346,7 @@ class StallScene(NodeScene):
         else:
             card = item.card
             status = R.buy(run, item)
+            sfx.play("buy")
             self.say_line("buy")
             self._refresh()
             place_card(self.sv, card, status, lambda final: self._after_card(final))
@@ -352,6 +380,7 @@ class StallScene(NodeScene):
             self.sv.pick_card(prompt, [c.uid for c in targets], lambda uid: self._service_picked(uid))
         else:
             if R.buy(run, item) == "ok":
+                sfx.play("buy")
                 self.say_line("service")
                 self.message("%s! Spread %d, Box %d." % (R.SERVICE_INFO[svc][0], run.spread_size, run.box_size), T.HEAL)
                 self._refresh()
@@ -364,6 +393,7 @@ class StallScene(NodeScene):
             return
         item = self.stock.service
         if R.buy(self.run, item, uid) == "ok":
+            sfx.play("buy")
             c = R.find_card(self.run, uid)[2]
             self.say_line("buy")
             self.message("%s: %s" % (R.SERVICE_INFO[item.service][0], cards.card_title(c)), T.HEAL)
@@ -399,6 +429,7 @@ class StallScene(NodeScene):
 
     def _do_sell(self, uid):
         n = R.sell(self.run, uid)
+        sfx.play("sell")
         self.message("Sold for %d Treat%s." % (n, "" if n == 1 else "s"), T.HEAL)
         self._refresh()
 

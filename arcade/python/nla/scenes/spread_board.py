@@ -41,6 +41,34 @@ def hit(a, b):
     return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
 
 
+def inside(x, y, rect):
+    """True when the point is inside rect (x, y, w, h)."""
+    return rect[0] <= x < rect[0] + rect[2] and rect[1] <= y < rect[1] + rect[3]
+
+
+def slot_at(x, y, ns, nb):
+    """("s" | "b", index) of the Spread / Box card cell under a pointer, else None. The cells are the drawn cards
+    widened to the row pitch (no dead gaps between neighbours); a lifted card's rim is included."""
+    pad = GAP_W // 2
+    if SLOT_Y - T.CARD_LIFT <= y < SLOT_Y + T.CARD_H:
+        for i in range(ns):
+            if slot_x(i) - pad <= x < slot_x(i) + T.CARD_W + pad:
+                return ("s", i)
+    if T.SPREAD_BOX_Y - T.CARD_LIFT <= y < T.SPREAD_BOX_Y + T.CARD_SH:
+        pad = (T.SPREAD_BOX_PITCH - T.CARD_SW) // 2
+        for i in range(nb):
+            if box_x(i) - pad <= x < box_x(i) + T.CARD_SW + pad:
+                return ("b", i)
+    return None
+
+
+def hover_allowed(app):
+    """May the pointer move the cursor right now? The tutorial coach vetoes hover via App.pointer_gate(kind). The App
+    already drops vetoed events, so this only matters for clicks, which move the cursor too."""
+    gate = getattr(app, "pointer_gate", None)
+    return gate is None or bool(gate("move"))
+
+
 class Board:
     def __init__(self, ns, nb, power=True):
         self.ns, self.nb, self.power = ns, nb, power

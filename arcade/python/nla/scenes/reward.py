@@ -11,12 +11,13 @@ the choice is final and answers region("reward"). Dev harnesses: `dev_reward()` 
 `dev_reward_full()` (full Box). `place_card` is the same duplicate / box-full logic without the animation.
 """
 
+from nla import sfx
 from nla.rules import cards, run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
 
-from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hit, slot_x, text_rows
+from .spread_board import Board, DetailPanel, PANEL_RECT, box_x, hit, hover_allowed, inside, slot_x, text_rows
 
 BIG = 2
 BIG_W, BIG_H = (T.CARD_W - 4 + 4) * BIG, T.CARD_H * BIG        # 96 x 128
@@ -30,6 +31,7 @@ FLY_DT = 0.05
 LAND_S = 1.8
 PANEL_A = (16, 204, 448, 48)
 SKIP_Y = 258
+SKIP_RECT = (180, SKIP_Y, 120, 28)
 
 
 def _card_x(i, n):
@@ -75,6 +77,21 @@ class DuplicateOverlay(W.Overlay):
             self.close("keep")
         elif ctl.a:
             self.close("merge" if self.focus == 0 else "keep")
+
+    def pointer(self, x, y, kind):
+        """Mouse: hovering a button focuses it, clicking one presses it, right = B, middle = C."""
+        if kind == "right":
+            return "b"
+        if kind == "middle":
+            return "c"
+        if kind not in ("move", "up"):
+            return None
+        for i, btn in enumerate((self.merge_btn, self.keep_btn)):
+            if inside(x, y, (btn.x, btn.y, btn.w, btn.h)):
+                if hover_allowed(self._app):
+                    self.focus = i
+                return "a" if kind == "up" and self.focus == i else None
+        return None
 
     def draw(self, scr, full=False):
         x, y, w, h = self.rect
@@ -124,7 +141,7 @@ class RewardScene(Scene):
         for v, c in zip(self.views, self.options):
             v.set_card(c)
         self.cursor = W.Cursor()
-        self.skip_btn = W.Button(180, SKIP_Y, 120, 28, "Skip +%d Treats" % skip_treats)
+        self.skip_btn = W.Button(*SKIP_RECT, "Skip +%d Treats" % skip_treats)
         self.detail = DetailPanel(PANEL_A)
         self.footer = W.Footer()
         self.board = Board(len(self.run.spread), len(self.run.box), power=False)
@@ -170,9 +187,37 @@ class RewardScene(Scene):
     def shake(self):
         """A blocked input: a gentle shake of the cursor (Flow may call this when it masks a key)."""
         self._shake_t = SHAKE_S
+        sfx.play("blocked")
 
     def _queue(self, fn):
         self._later = fn
+
+    # ------------------------------------------------------------------ pointer (mouse)
+    def _target(self, x, y):
+        """Cursor position (0..n-1 = card, n = Skip) of what is drawn under the pointer, else None."""
+        for i, v in enumerate(self.views):
+            if inside(x, y, (v.x, CARD_Y, BIG_W, BIG_H)):
+                return i
+        if self.has_skip and inside(x, y, SKIP_RECT):
+            return self.n
+        return None
+
+    def pointer(self, x, y, kind):
+        """Mouse: hover = cursor, left click = A (take / Skip), right = B, middle = C."""
+        if kind == "right":
+            return "b"
+        if kind not in ("move", "up", "middle"):
+            return None
+        if self.state != "choose":
+            return "a" if kind == "up" else None          # skip the deal / landing animation like A does
+        tgt = self._target(x, y)
+        if tgt is not None and tgt != self.pos and hover_allowed(self.app):
+            self.pos = tgt
+            self._moved()
+            sfx.play("move")
+        if kind == "move" or tgt is None or tgt != self.pos:
+            return None
+        return "c" if kind == "middle" else "a"
 
     # ------------------------------------------------------------------ update
     def update(self, ctl, dt):
@@ -212,12 +257,16 @@ class RewardScene(Scene):
             self.t = 9.0
         for i in range(n):
             t0 = FLIP_T0 + FLIP_STEP * i
+            was = self.want[i]
             if self.t >= t0 + FLIP_MID:
                 self.want[i] = "face"
             elif self.t >= t0:
                 self.want[i] = "sliver"
             elif self.t >= DEAL_T[min(i, 2)]:
                 self.want[i] = "back"
+            if self.want[i] != was:
+                if self.want[i] != "face":
+                    sfx.play("deal" if self.want[i] == "back" else "flip")
         self.busy = True
         if self.want == ["face"] * n:
             self.state = "choose"
@@ -262,6 +311,7 @@ class RewardScene(Scene):
     # ------------------------------------------------------------------ taking a card
     def _skip(self):
         self.run.treats += self.skip_treats
+        sfx.play("coin")
         self.sv.report("pick_reward")
         self.state = "skipped"
         self._result = None
@@ -359,6 +409,7 @@ class RewardScene(Scene):
         self.phase = "B"
         self._title_now = {"add": "Card added", "merge": "Cards merged", "replace": "Card swapped"}[kind]
         self.sv.report("pick_reward")
+        sfx.play("merge" if kind == "merge" else "reward")
         self.busy = True
 
     def _lists(self):
@@ -470,7 +521,7 @@ class RewardScene(Scene):
             for i, v in enumerate(self.views):
                 if hit(r, (v.x - 4, v.y - 4, BIG_W + 8, BIG_H + 22)):
                     self.drawn[i] = None
-            if hit(r, (180, SKIP_Y, 120, 28)):
+            if hit(r, SKIP_RECT):
                 self.skip_btn.invalidate()
             if hit(r, (30, 204, 420, 48)) or hit(r, (30, 246, 420, 48)):
                 self.detail.invalidate()

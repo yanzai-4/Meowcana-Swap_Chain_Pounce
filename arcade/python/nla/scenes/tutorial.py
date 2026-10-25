@@ -178,12 +178,22 @@ class Tutorial:
             self.app.say([line], None)
 
     # ------------------------------------------------------------------ input gate
-    def gate(self, inp):
+    def _gating(self):
         app = self.app
+        return (self.phase == "waiting" and not app.overlays and app._trans is None
+                and type(app.scene).__name__ == _need_scene(self.step))
+
+    def pointer_allowed(self, kind):
+        """PC mouse: hover (and the wheel) is the stick, so it only works while the step allows the stick.
+        Clicks always pass here; the synthesized A/B/C go through gate() like any button press."""
+        if kind in ("move", "wheel_up", "wheel_down") and self._gating():
+            return "stick" in self.allow
+        return True
+
+    def gate(self, inp):
         if inp.any:
             self.idle = 0.0
-        if (self.phase != "waiting" or app.overlays or app._trans is not None
-                or type(app.scene).__name__ != _need_scene(self.step)):
+        if not self._gating():
             return
         allow = self.allow
         blocked = False

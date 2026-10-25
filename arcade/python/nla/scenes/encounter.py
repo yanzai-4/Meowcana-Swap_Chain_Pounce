@@ -7,13 +7,14 @@ card you received for the Major/page encounters, and a Continue button. A gained
 fit the Box goes through the Reward flow when you press Continue.
 """
 
+from nla import sfx
 from nla.rules import run as R
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.input import step
 
 from . import path_art
-from .path_common import CENTER_W, CENTER_X, NodeScene, Sprite, Tile, enc_story, place_card, wrap
+from .path_common import CENTER_W, CENTER_X, NodeScene, Sprite, Tile, enc_story, hit, place_card, wrap
 
 ART_Y = 50                  # top of the 64 px sprites; feet on the floor strip at y 114
 FLOOR = (16, 114, 448, 6)
@@ -109,6 +110,28 @@ class EncounterScene(NodeScene):
             t.set(focused=(i == self.sel))
         self.set_hints([("A", self.text.options[self.sel]), ("C", "Info")])
 
+    # ------------------------------------------------------------------ pointer
+    WHEEL = ("left", "right")
+
+    def click_anywhere(self):
+        return self.mode == "result"
+
+    def target_at(self, x, y):
+        if self._locked:
+            return None
+        for i, t in enumerate(self.tiles):
+            if hit(t.rect, x, y):
+                return i
+        return None
+
+    def current_target(self):
+        return self.sel
+
+    def hover(self, target):
+        self.sel = target
+        self._focus()
+
+    # ------------------------------------------------------------------ input
     def update(self, ctl, dt):
         self.toast.update(dt)
         if self.pump_tip():
@@ -177,6 +200,10 @@ class EncounterScene(NodeScene):
         if dh:
             chips.append("HP %+d" % dh)
         color = T.CURSE if (dh < 0) else T.HEAL
+        if dh > 0 or dm > 0:
+            sfx.play("heal")
+        elif dh < 0:
+            sfx.play("hit")
         self._show_result(lines, detail, "   ".join(reversed(chips)) if chips else "", color, res)
 
     # ------------------------------------------------------------------ outcome page

@@ -64,6 +64,36 @@ python tools/flow_play.py tutorial --shots build/shots/      # autopilot: tutori
 python -m unittest discover -s tests                         # rules tests
 ```
 
+### Play on PC
+
+The same game also runs in a Windows window with mouse and sound; the board build is unchanged (the PC code lives in `pc/`, and `nla.sfx` is a no-op on the board).
+
+```sh
+pc\Meowcana.bat                      # double-click it, or use the Meowcana shortcut on the Desktop
+python pc/play.py --scale 3 --mute   # options: --fullscreen, --data DIR, --seed N
+```
+
+Needs Python 3 with `pygame-ce` and `Pillow` (the .bat installs them if they are missing). The window is 960x640 (integer scaling, F11 fullscreen), the game runs at 30 fps without the device cost throttling, and saves go to `%APPDATA%\Meowcana\` (with `settings.json` for volume, and `game.log` / `crash.log` if something goes wrong).
+
+| Input | Action |
+| --- | --- |
+| Mouse move / left click | hover moves the cursor / select (A); drag and drop cards on the Spread |
+| Right click / middle click | B (back) / C (info); the footer's A B C gems are clickable too |
+| Wheel | up / down |
+| Arrows or WASD, Z Enter Space, X Backspace, C Tab | stick, A, B, C |
+| Esc | pause Menu (same as holding B) |
+| F11, M, - / = | fullscreen, mute, volume |
+
+Pointer and sound contract for scenes: [`docs/pc-version.md`](docs/pc-version.md). Sounds are synthesized by `pc/sfx/gen_sfx.py` into `pc/sfx/*.wav`.
+
+Headless checks (SDL dummy drivers, virtual clock, mouse events synthesized at the real window pixels):
+
+```sh
+python pc/play.py --script "wait 1; move 240 247; click 240 247; wait 1; shot choice; scene; sfx" --shots build/shots/pc/
+```
+
+Commands: `move/click/right/middle X Y`, `wheel up|down`, `drag X1 Y1 X2 Y2`, `key NAME [secs]`, `wait S`, `shot NAME`, `scene`, `expect SceneName`, `sfx` (lists the sounds the mixer played), `size W H`. Coordinates are game pixels (480x320).
+
 How it fits together (Linux and MCU split, Bridge protocol, rendering cost model): [`docs/architecture.md`](docs/architecture.md). Asset list: [`docs/assets.md`](docs/assets.md). Fonts, generated art and tools: [`docs/credits.md`](docs/credits.md).
 
 ---

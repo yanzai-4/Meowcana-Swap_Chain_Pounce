@@ -7,7 +7,7 @@ Reward flow (nla.scenes.reward.place_card). `rules.run.open_box` is deterministi
 shows the same card.
 """
 
-from nla import story
+from nla import sfx, story
 from nla.rules import cards
 from nla.rules import run as R
 from nla.ui import theme as T
@@ -186,6 +186,9 @@ class BoxScene(NodeScene):
         self.set_hints([("A", "Open"), ("C", "Info")])
         self.tip("first_box")
 
+    def click_anywhere(self):
+        return True             # one big target: click opens the box, then takes the card (right/middle = B/C as usual)
+
     def animating(self):
         return self.stage.animating
 
@@ -215,10 +218,12 @@ class BoxScene(NodeScene):
 
     def _open(self):
         self._card = R.open_box(self.run)
+        sfx.play("box_open")
         self.stage.start(self._card)
         self.set_hints([])
 
     def _revealed(self):
+        sfx.play("reward")
         c = self._card
         self.head.set([(cards.card_title(c), T.LABEL, T.TITLE), 10, (cards.card_subtitle(c), T.TEXT)])
         text = cards.card_text(c)[:2]

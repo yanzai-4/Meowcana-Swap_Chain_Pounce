@@ -26,6 +26,7 @@ import os
 import random
 import traceback
 
+from nla import sfx
 from nla import story
 from nla.rules import run as R
 from nla.rules import save as S
@@ -57,6 +58,8 @@ def default_data_dir():
     here = os.path.dirname(os.path.abspath(__file__))           # <root>/python/nla
     return os.path.join(os.path.dirname(os.path.dirname(here)), "data")
 
+CALM_CUTSCENES = ("opening", "tutorial_graduate", "third_death_dream", "demo_end")
+
 
 # =============================================================================================== app
 HOLD_B = 0.6          # seconds of holding B that open the pause Menu on any screen
@@ -72,6 +75,7 @@ class GatedInput(Input):
 
     mask = None
     on_hold = None          # callable() -> bool: True when it opened the Menu
+    menu = False            # set by the PC runner for one frame: open the Menu now
 
     def __init__(self):
         super().__init__()
@@ -93,6 +97,10 @@ class GatedInput(Input):
                 if not self._b_fired:
                     self.b = True
                 self._b_down, self._b_fired, self.b_time = False, False, 0.0
+        if self.menu:                                   # PC: Esc / the synthesized "menu" input = a completed hold of B
+            self.menu = False
+            if self.on_hold is not None:
+                self.on_hold()
         if self.mask is not None:
             self.mask(self)
 
@@ -103,6 +111,7 @@ class FlowApp(App):
         self.crashed = False
         self._crash_drawn = False
         self.tutor = None
+        self._music = None
         super().__init__(None)
         self.input = GatedInput()
         self.input.mask = self._mask
@@ -119,9 +128,34 @@ class FlowApp(App):
 
     def _apply(self, fn):
         super()._apply(fn)
+        self._music_for()
         after, self._after = self._after, []
         for f in after:
             f()
+
+    pc = False                  # the PC runner sets it: tutorial lines then say "Click" instead of "Press A"
+
+    def say(self, lines, on_done=None):
+        super().say(story.pc_lines(lines) if self.pc else lines, on_done)
+
+    def pointer_gate(self, kind):
+        """PC: False vetoes a pointer event (the tutorial coach only lets hover through when the stick is allowed)."""
+        return self.tutor is None or self.tutor.pointer_allowed(kind)
+
+    def _music_for(self):
+        """Music loop of the scene now on top (Battle chooses its own); sfx.music ignores a repeat."""
+        name = type(self.scene).__name__ if self.scene is not None else ""
+        if name == "MenuScene":
+            return                                   # the pause Menu keeps whatever is playing
+        if name == "BattleScene":
+            self._music = None
+            return
+        calm = name in ("TitleScene", "ParlorScene", "EndingScene") or (
+            name == "CutsceneScene" and self.scene.key in CALM_CUTSCENES)
+        want = "music_title" if calm else "music_attic"
+        if want != self._music:
+            self._music = want
+            sfx.music(want)
 
     def _mask(self, inp):
         if self.tutor is not None:

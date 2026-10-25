@@ -12,7 +12,7 @@ from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.input import step
 
-from .path_common import NodeScene, Tile, wrap
+from .path_common import NodeScene, Tile, hit, wrap
 
 _RESUME = ("resume", "Back to the game.", "Resume", "Close the menu and keep playing.")
 _HOW = ("how", "Read the rules again.", "How to Play",
@@ -122,6 +122,19 @@ class MenuScene(NodeScene):
             t.set(focused=(i == self.sel))
         self.help.set(self.entries[self.sel][1])
         self.set_hints([("A", "Select"), ("B", "Resume"), ("C", "Info")])
+
+    def target_at(self, x, y):
+        for i, t in enumerate(self.rows):
+            if hit(t.rect, x, y):
+                return i
+        return None
+
+    def current_target(self):
+        return self.sel
+
+    def hover(self, target):
+        self.sel = target
+        self._focus()
 
     def update(self, ctl, dt):
         self.toast.update(dt)

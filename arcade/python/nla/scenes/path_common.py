@@ -17,7 +17,7 @@ closing a Dialogue does not cost a whole-screen repaint.
 
 import textwrap
 
-from nla import story
+from nla import sfx, story
 from nla.ui import theme as T
 from nla.ui import widgets as W
 from nla.ui.app import Scene
@@ -443,3 +443,47 @@ class NodeScene(Scene):
         if key == "footer":
             return (0, T.FOOTER_DIV_Y, T.SCREEN_W, T.SCREEN_H - T.FOOTER_DIV_Y)
         return None
+
+    # -- pointer (PC build only; the board never calls this). Subclasses override the four hooks below.
+    WHEEL = ("up", "down")      # wheel_up / wheel_down become these inputs (horizontal scenes use left / right)
+    HOVER_SFX = "move"
+
+    def target_at(self, x, y):
+        """Hashable target under the pointer (what a click would act on), or None."""
+        return None
+
+    def current_target(self):
+        return None
+
+    def hover(self, target):
+        """Move the cursor onto `target`."""
+
+    def click_anywhere(self):
+        """True while the scene shows a result page where a click anywhere means Continue."""
+        return False
+
+    def pointer(self, x, y, kind):
+        if kind == "right":
+            return "b"
+        if kind == "middle":
+            return "c"
+        if kind == "wheel_up":
+            return self.WHEEL[0]
+        if kind == "wheel_down":
+            return self.WHEEL[1]
+        if kind not in ("move", "up"):
+            return None
+        if self.click_anywhere():
+            return "a" if kind == "up" else None
+        t = self.target_at(x, y)
+        if t is None:
+            return None
+        if t != self.current_target():
+            self.hover(t)
+            sfx.play(self.HOVER_SFX)
+        return "a" if kind == "up" else None
+
+
+def hit(rect, x, y, pad=0):
+    rx, ry, rw, rh = rect
+    return rx - pad <= x < rx + rw + pad and ry - pad <= y < ry + rh + pad
